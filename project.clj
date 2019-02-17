@@ -15,6 +15,7 @@
                  [org.clojure/java.jdbc "0.7.8"]
                  [com.mchange/c3p0 "0.9.5.3"]
                  [org.postgresql/postgresql "42.2.5"]
+                 [commons-codec/commons-codec "1.11"]
                  [cheshire "5.8.0"]]
   :main ^:skip-aot stash.core
   :target-path "target/%s"

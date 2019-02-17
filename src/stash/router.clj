@@ -8,8 +8,8 @@
   (routes
     (ANY "/" [] h/index)
     (ANY "/status" [] h/status)
-    (POST "/create" r h/create)
-    (GET "/retrieve/:token" r h/retrieve)
+    (POST "/create/:supplied-token" r h/create)
+    (POST "/retrieve/:supplied-token" r h/retrieve)
     (route/not-found (h/->resp
                        :body "nothing to see here"
                        :status 404))))

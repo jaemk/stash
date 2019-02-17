@@ -1,6 +1,8 @@
 (ns stash.handlers
   (:import [java.security MessageDigest]
-           [java.nio ByteBuffer])
+           [java.nio ByteBuffer]
+           [java.util UUID]
+           [org.apache.commons.codec.binary Hex])
   (:require [taoensso.timbre :as t]
             [manifold.deferred :as d]
             [manifold.stream :as s]
@@ -77,12 +79,22 @@
       (throw (Exception. (str "upload dir does not exist: " upload-dir-f))))))
 
 
+(defn format-uuid [uuid]
+  (-> uuid .toString (.replace "-" "")))
+
+
+(defn parse-uuid [uuid-str]
+  (-> (Hex/decodeHex uuid-str)
+      (ByteBuffer/wrap)
+      (#(UUID. (.getLong %) (.getLong %)))))
+
 (defn create [req]
-  (let [token (java.util.UUID/randomUUID)
-        token-str (-> token .toString (.replace "-" ""))
+  (let [token (UUID/randomUUID)
+        token-str (format-uuid token)
         upload-path (new-upload-path token-str)
         upload-file (io/file upload-path)
         size (atom 0)
+        supplied-token (-> req :params :supplied-token)
         data-stream (s/stream buf-size)
         connect-fn (fn [buf]
                      (do
@@ -94,7 +106,10 @@
       (d/future-with
         ex/cpu
         (j/with-db-transaction [conn (db/conn)]
-          (j/insert! conn :items {:path upload-path :token token :size @size})))
+          (j/insert! conn :items {:path upload-path
+                                  :stash_token token
+                                  :supplied_token supplied-token
+                                  :size @size})))
       (fn [item]
         (do
           (t/info "uploading item" item "to" upload-path)
@@ -107,26 +122,44 @@
                           :token token-str})))))
 
 
-(defn stream-file [sink file-name]
+(defn stream-from-file [sink file-name]
   (d/future-with
     ex/fs
-    (with-open [file-stream (io/input-stream (io/file file-name))
-                buf (byte-array buf-size)]
-      (loop []
-        (let [size (.read file-stream buf)]
-          (if (pos? size)
-            (do
-              (s/put! sink (into-array Byte/TYPE (take size buf)))
-              (recur))
-            (s/close! sink)))))))
+    (let [buf (byte-array buf-size)]
+      (with-open [file-stream (io/input-stream (io/file file-name))]
+        (loop []
+          (let [size (.read file-stream buf)]
+            (if (pos? size)
+              (do
+                (s/put! sink (into-array Byte/TYPE (take size buf)))
+                (recur))
+              (s/close! sink))))))))
 
 
 (defn retrieve [req]
-  (let [sink (s/stream buf-size)
-        body (s/stream buf-size)
-        _ (s/connect sink body {:description "file transfer stream"})]
-    (stream-file sink "LICENSE")
-    (->resp
-     :headers {"content-type" "text/plain"}
-     :body body)))
+  (let [supplied-token (-> req :params :supplied-token)
+        stash-token (-> req
+                        :body
+                        (bs/to-string)
+                        (s->map)
+                        (get "stash_token")
+                        (parse-uuid))
+        _ (prn supplied-token stash-token)
+        sink (s/stream buf-size)
+        resp (s/stream buf-size)
+        _ (s/connect sink resp {:description "file transfer stream"})]
+    (d/chain
+      (d/future-with
+        ex/cpu
+        (j/with-db-transaction [conn (db/conn)]
+          (j/query conn ["select * from items where stash_token = ? and supplied_token = ?"
+                         stash-token
+                         supplied-token]
+                   {:result-set-fn first})))
+      (fn [item]
+        (prn item))
+      (fn [_](stream-from-file sink "LICENSE"))
+      (fn [_] (->resp
+       :headers {"content-type" "text/plain"}
+       :body resp)))))
 
