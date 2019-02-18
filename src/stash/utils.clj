@@ -1,4 +1,7 @@
-(ns stash.utils)
+(ns stash.utils
+  (:import [java.util UUID]
+           [java.nio ByteBuffer]
+           [org.apache.commons.codec.binary Hex]))
 
 
 (defn mapply [func mapping]
@@ -14,4 +17,18 @@
     (if-let [v (System/getenv prop)]
       v
       default)))
+
+(defn uuid []
+  (UUID/randomUUID))
+
+
+(defn format-uuid [^UUID uuid]
+  (-> uuid .toString (.replace "-" "")))
+
+
+(defn parse-uuid [^String uuid-str]
+  (-> (Hex/decodeHex uuid-str)
+      (ByteBuffer/wrap)
+      ((fn [^ByteBuffer buf]
+         (UUID. (.getLong buf) (.getLong buf))))))
 

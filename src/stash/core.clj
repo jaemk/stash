@@ -29,7 +29,7 @@
 
 (defn- log-error
   "Format and log any unhandled errors"
-  [e]
+  [^Exception e]
   (let [s (.toString e)
         trace (->> (.getStackTrace e)
                    (map str)
