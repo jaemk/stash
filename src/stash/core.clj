@@ -10,6 +10,8 @@
             [compojure.response :refer [Renderable]]
             [clojure.java.jdbc :as j]
             [stash.router :as router]
+            [stash.utils :as u]
+            [stash.handlers :refer [->resp]]
             [stash.execution :as ex]
             [stash.database :as db])
   (:gen-class))
@@ -29,36 +31,39 @@
   (render [d _] d))
 
 
-(defn- log-error
-  "Format and log any unhandled errors"
-  [^Exception e]
-  (let [s (.toString e)
-        trace (->> (.getStackTrace e)
-                   (map str)
-                   (clojure.string/join "\n"))]
-    (t/error (format "%s\n%s" s trace))
-    {:status 500
-     :body "Something went wrong"}))
-
-
-(defn- wrap-log-request
-  "Log request/response"
+(defn- wrap-deferred-request
+  "Wrap deferred request with logging and error handling"
   [handler]
   (fn [request]
     (let [method (:request-method request)
           uri (:uri request)
+          status (atom nil)
           start (:aleph/request-arrived request)]
       (-> request
         (d/chain
           handler
           (fn [resp]
-            (let [status (:status resp)
-                  elap-ms (-> (System/nanoTime)
+            (reset! status (:status resp))
+            resp))
+        (d/catch
+          Exception
+          (fn [^Exception e]
+            (let [info (ex-data e)]
+              (if (nil? info)
+                (do
+                  (reset! status 500)
+                  (t/error e)
+                  (->resp :status 500 :body "Something went wrong"))
+                (do
+                  (reset! status (-> info :resp :status))
+                  (t/errorf "%s %s" (:type info) (:msg info))
+                  (:resp info))))))
+        (d/finally
+          (fn []
+            (let [elap-ms (-> (System/nanoTime)
                               (- start)
                               (/ 1000000.))]
-              (t/info method uri status (str elap-ms "ms"))
-              resp)))
-          (d/catch Exception log-error)))))
+              (t/info method uri @status (str elap-ms "ms")))))))))
 
 
 (defn- wrap-query-params
@@ -79,7 +84,7 @@
   [opts]
   (let [app (-> (router/load-routes)
                 wrap-query-params
-                wrap-log-request)]
+                wrap-deferred-request)]
     (http/start-server app opts)))
 
 
