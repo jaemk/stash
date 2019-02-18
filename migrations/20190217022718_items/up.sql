@@ -1,6 +1,6 @@
 create table app_users (
     id bigserial primary key,
-    name text not null,
+    name text unique not null,
     created timestamp with time zone not null default now()
 );
 
@@ -18,7 +18,7 @@ create table items (
     stash_token uuid unique not null,
     supplied_token text not null,
     content_hash text,
-    creator bigint references "app_users" ("id") on delete set null,
+    creator bigint not null references "app_users" ("id") on delete set null,
     created timestamp with time zone not null default now(),
     expires_at timestamp with time zone
 );
