@@ -1,7 +1,8 @@
 (ns stash.utils
   (:import [java.util UUID]
            [java.nio ByteBuffer]
-           [org.apache.commons.codec.binary Hex]))
+           [org.apache.commons.codec.binary Hex])
+  (:require [taoensso.timbre :as t]))
 
 
 (defn mapply [func mapping]
@@ -27,8 +28,19 @@
 
 
 (defn parse-uuid [^String uuid-str]
-  (-> (Hex/decodeHex uuid-str)
-      (ByteBuffer/wrap)
-      ((fn [^ByteBuffer buf]
-         (UUID. (.getLong buf) (.getLong buf))))))
+  (when (some? uuid-str)
+    (try
+      (-> (Hex/decodeHex uuid-str)
+          ((fn [buf]
+            (if (not (= 16 (alength buf)))
+              (throw (Exception. "invalid uuid"))
+              buf)))
+          (ByteBuffer/wrap)
+          ((fn [^ByteBuffer buf]
+             (t/infof "buf cap %s" (.capacity buf))
+             (UUID. (.getLong buf) (.getLong buf)))))
+      (catch Exception e
+        (t/error e)
+        (throw (Exception. "Invalid uuid"))))))
+
 
