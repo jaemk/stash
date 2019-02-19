@@ -1,36 +1,28 @@
 # stash
 
-FIXME: description
+> A simple item storage system
 
 ## Installation
 
-Download from http://example.com/FIXME.
+See releases for standalone jars
+
+or build an uberjar
+
+```
+$ lein uberjar
+```
 
 ## Usage
 
-FIXME: explanation
+```
+# create application/user access tokens
+$ java -jar stash-<version>-standalone.jar add-user --name "my app that needs access to stash"
 
-    $ java -jar stash-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
+# start the server
+$ java -jar stash-<version>-standalone.jar serve --port 4000
+```
 
 ## License
-
-Copyright © 2019 FIXME
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
