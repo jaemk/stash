@@ -13,7 +13,7 @@ create table auth_tokens (
 
 create table items (
     id bigserial primary key,
-    size bigint not null,
+    size bigint,
     path text not null,
     stash_token uuid unique not null,
     supplied_token text not null,
