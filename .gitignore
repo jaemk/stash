@@ -12,3 +12,6 @@ pom.xml.asc
 uploads
 Migrant.toml
 .env.local
+repl.*
+test_large.txt
+test_out.txt
