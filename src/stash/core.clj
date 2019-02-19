@@ -3,25 +3,27 @@
             [clojure.tools.cli :refer [parse-opts]]
             [manifold.deferred :as d]
             [aleph.http :as http]
-            [byte-streams :as bs]
-            [byte-transforms :as bt]
             [ring.middleware.params :as params]
             [ring.util.request :as ring-request]
             [compojure.response :refer [Renderable]]
             [clojure.java.jdbc :as j]
             [stash.router :as router]
-            [stash.utils :as u]
-            [stash.handlers :refer [->resp]]
-            [stash.execution :as ex]
+            [stash.utils :as u :refer [->resp]]
             [stash.database :as db])
   (:gen-class))
+
 
 ;; Setup stdout logging
 (t/refer-timbre)
 (t/set-level! :debug)
 
+
 ;; initialize connection pool
 (db/conn)
+
+
+(def APP_VERSION
+  (-> "project.clj" slurp read-string (nth 2)))
 
 
 ;; Make sure compojure passes through all
@@ -82,7 +84,7 @@
 (defn- init-server
   "Initialize server with middleware"
   [opts]
-  (let [app (-> (router/load-routes)
+  (let [app (-> (router/load-routes APP_VERSION)
                 wrap-query-params
                 wrap-deferred-request)]
     (http/start-server app opts)))
@@ -156,7 +158,7 @@
 
 
 (defn usage [opts]
-  (->> ["Stash"
+  (->> [(format "Stash %s" APP_VERSION)
         ""
         "Usage: stash [options] command"
         ""
