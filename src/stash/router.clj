@@ -11,6 +11,7 @@
     (ANY "/status" [] (u/->json {:status :ok :version app-version}))
     (POST "/create/:supplied-token" r h/create)
     (POST "/retrieve/:supplied-token" r h/retrieve)
+    (POST "/delete/:supplied-token" r h/delete)
     (route/not-found (u/->resp
                        :body "nothing to see here"
                        :status 404))))

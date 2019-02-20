@@ -45,12 +45,20 @@
 
 ;; ---- error builders
 (defn ex-invalid-request
-  [& {:keys [e-msg resp-msg] :or {e-msg "Missing request access token"
-                                  reps-msg "expected access token header"}}]
+  [& {:keys [e-msg resp-msg] :or {e-msg "invalid request"
+                                  resp-msg "invalid request"}}]
   (ex-info e-msg
            {:type :invalid-request
             :msg e-msg
-            :resp (->resp :status 400 :body e-msg)}))
+            :resp (->resp :status 400 :body resp-msg)}))
+
+(defn ex-unauthorized
+  [& {:keys [e-msg resp-msg] :or {e-msg "unauthorized"
+                                  resp-msg "unauthorized"}}]
+  (ex-info e-msg
+           {:type :invalid-request
+            :msg e-msg
+            :resp (->resp :status 401 :body resp-msg)}))
 
 (defn ex-not-found
   [& {:keys [e-msg resp-msg] :or {e-msg "item not found"
@@ -88,14 +96,16 @@
 
 
 ;; ---- general
-(defn assert-file-exists [item]
+(defn assert-item-file-exists [item]
   (let [item-id (:id item)
         file-path (:path item)
         file (io/file file-path)]
     (if-not (.exists file)
       (ex-not-found :e-msg (format "backing file (%s) does not exist for item %s"
                                    file-path
-                                   item-id)))))
+                                   item-id))
+      file)))
+
 
 (defn get-config
   "Get a config value from system properties or the environment"

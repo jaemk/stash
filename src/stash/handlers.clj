@@ -30,7 +30,9 @@
     (get "x-stash-access-token")
     ((fn [token]
        (if (nil? token)
-         (throw (u/ex-invalid-request))
+         (throw (u/ex-unauthorized
+                  :e-msg "missing access token"
+                  :resp-msg "missing access token"))
          token)))))
 
 
@@ -83,27 +85,48 @@
                                         u/format-uuid)}))))))))
 
 
+(defn get-stash-token [req]
+  (-> req
+      :body
+      (bs/to-string)
+      (s->map)
+      (get "stash_token")
+      ((fn [token]
+         (if (nil? token)
+           (throw (u/ex-invalid-request
+                    :e-msg "missing stash token"
+                    :resp-msg "missing stash token"))
+           token)))))
+
+
 (defn retrieve [req]
   (let [supplied-token (-> req :params :supplied-token)
         request-user-token (-> (get-request-user-token req) u/parse-uuid)
-        stash-token (-> req
-                        :body
-                        (bs/to-string)
-                        (s->map)
-                        (get "stash_token")
-                        (u/parse-uuid))
-        sink (s/stream)
-        resp (s/stream)
-        _ (s/connect sink resp {:description "file transfer stream"})]
-    (if (nil? request-user-token)
-      (->resp :status 401 :body "unauthorized")
-      (d/chain
-        (d/future-with
-          ex/pool
-          (j/with-db-transaction [conn (db/conn)]
-            (m/get-item-by-tokens conn stash-token supplied-token request-user-token)))
-        (fn [item]
-          (u/assert-file-exists item)
-          (->resp
-            :headers {"content-type" "application/octet-stream"}
-            :body (io/file (:path item))))))))
+        stash-token (-> (get-stash-token req) u/parse-uuid)]
+    (d/chain
+      (d/future-with
+        ex/pool
+        (j/with-db-transaction [conn (db/conn)]
+          (m/get-item-by-tokens conn stash-token supplied-token request-user-token)))
+      (fn [item]
+        (u/assert-item-file-exists item)
+        (->resp
+          :headers {"content-type" "application/octet-stream"}
+          :body (io/file (:path item)))))))
+
+
+(defn delete [req]
+  (let [supplied-token (-> req :params :supplied-token)
+        request-user-token (-> (get-request-user-token req) u/parse-uuid)
+        stash-token (-> (get-stash-token req) u/parse-uuid)]
+    (d/chain
+      (d/future-with
+        ex/pool
+        (j/with-db-transaction [conn (db/conn)]
+          (let [item (m/get-item-by-tokens conn stash-token supplied-token request-user-token)
+                item-deleted (m/delete-item-by-id conn (:id item))
+                _ (if-not item-deleted (throw (Exception. "Failed deleting database item")))
+                file (u/assert-item-file-exists item)
+                file-deleted (.delete file)
+                _ (if-not file-deleted (throw (Exception. "Failed deleting item backing file")))]
+            (->json {:ok :ok})))))))
