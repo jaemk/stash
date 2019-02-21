@@ -1,0 +1,14 @@
+[Unit]
+Description=Stash service
+Requires=postgresql.service
+After=postgresql.service
+
+[Service]
+EnvironmentFile=/<abs-path-to>/stash/.env.local
+User=james
+WorkingDirectory=/<abs-path-to>/stash
+ExecStart=/usr/bin/java -jar /<abs-path-to>/stash/bin/stash.jar serve --port PORT
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
