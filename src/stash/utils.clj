@@ -143,7 +143,7 @@
 
 
 (defn new-upload-path [^String token]
-  (let [upload-dir-name (get-config "UPLOAD_DIR" :default "uploads")
+  (let [upload-dir-name (get-config "STASH_UPLOAD_DIR" :default "uploads")
         upload-path (-> (io/file upload-dir-name)
                         .toPath
                         .toAbsolutePath)]
