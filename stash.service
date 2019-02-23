@@ -5,9 +5,10 @@ After=postgresql.service
 
 [Service]
 EnvironmentFile=/<abs-path-to>/stash/.env.local
+Environment=JVM_OPTS=
 User=james
 WorkingDirectory=/<abs-path-to>/stash
-ExecStart=/usr/bin/java -jar /<abs-path-to>/stash/bin/stash.jar serve --port PORT
+ExecStart=/<abs-path-to>/stash/bin/stash serve --port PORT
 Restart=on-failure
 
 [Install]
