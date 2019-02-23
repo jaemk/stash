@@ -1,8 +1,5 @@
 (ns stash.handlers
-  (:import [java.security MessageDigest]
-           [java.nio ByteBuffer]
-           [java.util UUID]
-           [org.apache.commons.codec.binary Hex]
+  (:import [java.io File]
            [io.netty.buffer PooledSlicedByteBuf])
   (:require [taoensso.timbre :as t]
             [manifold.deferred :as d]
@@ -127,6 +124,7 @@
                 item-deleted (m/delete-item-by-id conn (:id item))
                 _ (if-not item-deleted (throw (Exception. "Failed deleting database item")))
                 file (u/assert-item-file-exists item)
+                ^File file (u/assert-item-file-exists item)
                 file-deleted (.delete file)
                 _ (if-not file-deleted (throw (Exception. "Failed deleting item backing file")))]
             (->json {:ok :ok})))))))
