@@ -1,6 +1,7 @@
 (ns stash.core
   (:require [taoensso.timbre :as t]
             [clojure.tools.cli :refer [parse-opts]]
+            [clojure.string :as string]
             [manifold.deferred :as d]
             [aleph.http :as http]
             [ring.middleware.params :as params]
@@ -168,7 +169,7 @@
         "Commands:"
         "  serve     Start server listening on PORT"
         "  add-user  Create a new user with NAME"]
-       (clojure.string/join \newline)))
+       (string/join \newline)))
 
 
 (defn has-required [command opts]
@@ -186,7 +187,7 @@
   (let [{:keys [options arguments errors summary]} (parse-opts args cli)]
     (cond
       (:help options)     {:msg (usage summary) :ok? true}
-      errors              {:msg (str "Error:\n" (clojure.string/join \newline errors))}
+      errors              {:msg (str "Error:\n" (string/join \newline errors))}
       (and (= 1 (count arguments))
            (#{"serve" "add-user"} (first arguments))
            (has-required (first arguments) options))
