@@ -44,32 +44,34 @@
 
 
 ;; ---- error builders
-(defn ex-invalid-request
+(defn ex-invalid-request!
   [& {:keys [e-msg resp-msg] :or {e-msg "invalid request"
                                   resp-msg "invalid request"}}]
-  (ex-info e-msg
-           {:type :invalid-request
-            :msg e-msg
-            :resp (->resp :status 400 :body resp-msg)}))
+  (throw
+    (ex-info e-msg
+             {:type :invalid-request
+              :msg e-msg
+              :resp (->resp :status 400 :body resp-msg)})))
 
-(defn ex-unauthorized
+(defn ex-unauthorized!
   [& {:keys [e-msg resp-msg] :or {e-msg "unauthorized"
                                   resp-msg "unauthorized"}}]
-  (ex-info e-msg
-           {:type :invalid-request
-            :msg e-msg
-            :resp (->resp :status 401 :body resp-msg)}))
+  (throw
+    (ex-info e-msg
+             {:type :invalid-request
+              :msg e-msg
+              :resp (->resp :status 401 :body resp-msg)})))
 
-(defn ex-not-found
+(defn ex-not-found!
   [& {:keys [e-msg resp-msg] :or {e-msg "item not found"
                                   resp-msg "item not found"}}]
-  (ex-info e-msg
-           {:type :invalid-request
-            :msg e-msg
-            :resp (->resp :status 404 :body resp-msg)}))
+  (throw
+    (ex-info e-msg
+             {:type :invalid-request
+              :msg e-msg
+              :resp (->resp :status 404 :body resp-msg)})))
 
-
-(defn ex-does-not-exist [record-type]
+(defn ex-does-not-exist! [record-type]
   (let [msg (format "Record %s does not exist" record-type)]
     (throw
       (ex-info
@@ -78,6 +80,17 @@
          :cause record-type
          :msg msg
          :resp (->resp :status 404 :body "item not found")}))))
+
+(defn ex-error!
+  [e-msg & {:keys [resp-msg cause] :or {resp-msg "something went wrong"
+                                        cause nil}}]
+  (throw
+   (ex-info
+     e-msg
+     {:type :internal-error
+      :cause cause
+      :msg e-msg
+      :resp (->resp :status 500 :body resp-msg)})))
 
 
 ;; ---- assertions
@@ -101,9 +114,9 @@
         file-path (:path item)
         file (io/file file-path)]
     (if-not (.exists file)
-      (ex-not-found :e-msg (format "backing file (%s) does not exist for item %s"
-                                   file-path
-                                   item-id))
+      (ex-not-found! :e-msg (format "backing file (%s) does not exist for item %s"
+                                    file-path
+                                    item-id))
       file)))
 
 

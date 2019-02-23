@@ -8,7 +8,7 @@
 (defn first-or-err [ty result-set]
   (if-let [one (first result-set)]
     one
-    (u/ex-does-not-exist ty)))
+    (u/ex-does-not-exist! ty)))
 
 
 (defrecord Auth

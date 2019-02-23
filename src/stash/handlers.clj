@@ -27,9 +27,9 @@
     (get "x-stash-access-token")
     ((fn [token]
        (if (nil? token)
-         (throw (u/ex-unauthorized
-                  :e-msg "missing access token"
-                  :resp-msg "missing access token"))
+         (u/ex-unauthorized!
+           :e-msg "missing access token"
+           :resp-msg "missing access token")
          token)))))
 
 
@@ -90,9 +90,9 @@
       (get "stash_token")
       ((fn [token]
          (if (nil? token)
-           (throw (u/ex-invalid-request
-                    :e-msg "missing stash token"
-                    :resp-msg "missing stash token"))
+           (u/ex-invalid-request!
+             :e-msg "missing stash token"
+             :resp-msg "missing stash token")
            token)))))
 
 
@@ -122,9 +122,10 @@
         (j/with-db-transaction [conn (db/conn)]
           (let [item (m/get-item-by-tokens conn stash-token supplied-token request-user-token)
                 item-deleted (m/delete-item-by-id conn (:id item))
-                _ (if-not item-deleted (throw (Exception. "Failed deleting database item")))
-                file (u/assert-item-file-exists item)
+                _ (if-not item-deleted
+                    (u/ex-error! "Failed deleting database item"))
                 ^File file (u/assert-item-file-exists item)
                 file-deleted (.delete file)
-                _ (if-not file-deleted (throw (Exception. "Failed deleting item backing file")))]
+                _ (if-not file-deleted
+                    (u/ex-error! "Failed deleting item backing file"))]
             (->json {:ok :ok})))))))
