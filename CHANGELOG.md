@@ -1,24 +1,19 @@
 # Change Log
-All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased]
-### Changed
-- Add a new arity to `make-widget-async` to provide a different widget shape.
-
-## [0.1.1] - 2019-02-16
-### Changed
-- Documentation on how to make the widgets.
-
-### Removed
-- `make-widget-sync` - we're all async, all the time.
-
-### Fixed
-- Fixed widget maker to keep working when daylight savings switches over.
-
-## 0.1.0 - 2019-02-16
 ### Added
-- Files from the new template.
-- Widget maker public API - `make-widget-sync`.
+- deletion end point
+- sample systemd config
+- exported default env vars in .env so they can be defined without `export`
+  in .env.local and .env.local can be used as a systemd `EnvironmentFile`
 
-[Unreleased]: https://github.com/your-name/stash/compare/0.1.1...HEAD
-[0.1.1]: https://github.com/your-name/stash/compare/0.1.0...0.1.1
+### Changed
+- updated changelog
+- add more example usage to readme
+
+## 0.1.0 - 2019-02-20
+### Added
+- stash service
+
+[Unreleased]: https://github.com/your-name/stash/compare/0.1.0...HEAD
+[0.2.0]: https://github.com/your-name/stash/compare/0.1.0...0.2.0
