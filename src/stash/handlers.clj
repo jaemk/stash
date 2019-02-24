@@ -61,12 +61,15 @@
       (d/future-with
         ex/pool
         (j/with-db-transaction [conn (db/conn)]
-          (let [auth (m/get-auth-by-token conn user-auth-token)]
-            (m/create-item conn {:path upload-path
-                                 :stash_token token
-                                 :supplied_token supplied-token
-                                 :creator (:app_user auth)}))))
-      (fn [item]
+          (let [auth (m/get-auth-by-token conn user-auth-token)
+                item (m/create-item conn {:path upload-path
+                                          :stash_token token
+                                          :supplied_token supplied-token
+                                          :creator (:app_user auth)})]
+            {:auth auth
+             :item item})))
+      (fn [{auth :auth
+            item :item}]
         (t/infof "uploading item %s to %s" (:id item) upload-path)
         (d/chain
           (stream-to-file body upload-file)
@@ -74,7 +77,10 @@
             (d/future-with
               ex/pool
               (j/with-db-transaction [conn (db/conn)]
-                (m/update-item-size conn (:id item) @size))
+                (m/update-item-size conn (:id item) @size)
+                (m/create-access conn {:item (:id item)
+                                       :app_user (:app_user auth)
+                                       :kind :create}))
               (t/infof "finished item %s upload of %s bytes" (:id item) @size)
               (->json {:ok :ok
                        :size @size
@@ -104,7 +110,11 @@
       (d/future-with
         ex/pool
         (j/with-db-transaction [conn (db/conn)]
-          (m/get-item-by-tokens conn stash-token supplied-token request-user-token)))
+          (let [item (m/get-item-by-tokens conn stash-token supplied-token request-user-token)]
+            (m/create-access conn {:item (:id item)
+                                   :app_user (:creator item)
+                                   :kind :retrieve})
+            item)))
       (fn [item]
         (u/assert-item-file-exists item)
         (->resp
@@ -122,6 +132,9 @@
         (j/with-db-transaction [conn (db/conn)]
           (let [item (m/get-item-by-tokens conn stash-token supplied-token request-user-token)
                 item-deleted (m/delete-item-by-id conn (:id item))
+                _ (m/create-access conn {:item (:id item)
+                                         :app_user (:creator item)
+                                         :kind :delete})
                 _ (if-not item-deleted
                     (u/ex-error! "Failed deleting database item"))
                 ^File file (u/assert-item-file-exists item)
