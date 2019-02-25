@@ -24,5 +24,5 @@
              :dev {:plugins [[lein-binplus "0.6.4"]]}}
   :bin {:name "stash"
         :bin-path "bin"
-        :jvm-opts ["-server" "-Dfile.encoding=utf-8" "$JVM_OPTS"]})
-
+        :jvm-opts ["-server" "-Dfile.encoding=utf-8" "$JVM_OPTS"]
+        :custom-preamble "#!/bin/sh\nexec java {{{jvm-opts}}} -jar $0 \"$@\"\n"})
