@@ -1,6 +1,8 @@
 # Change Log
 
 ## [Unreleased]
+
+## [0.2.0] - 2019-02-25
 ### Added
 - deletion end point
 - sample systemd config
@@ -18,5 +20,5 @@
 ### Added
 - stash service
 
-[Unreleased]: https://github.com/your-name/stash/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/your-name/stash/compare/0.2.0...HEAD
 [0.2.0]: https://github.com/your-name/stash/compare/0.1.0...0.2.0
