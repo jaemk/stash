@@ -4,6 +4,8 @@
 
 ## Build/Installation
 
+Build from source or see [releases](https://github.com/jaemk/stash/releases)
+for pre-built executables (jre is still required)
 
 ```
 # generate a standalone jar wrapped in an executable script
