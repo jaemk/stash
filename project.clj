@@ -1,4 +1,4 @@
-(defproject stash "0.1.0"
+(defproject stash "0.2.0"
   :description "Simple file storage system"
   :url "https://github.com/jaemk/stash"
   :license {:name "Eclipse Public License"
