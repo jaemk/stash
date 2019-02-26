@@ -1,6 +1,5 @@
 (ns stash.core
   (:require [taoensso.timbre :as t]
-            [clojure.tools.cli :refer [parse-opts]]
             [clojure.string :as string]
             [manifold.deferred :as d]
             [aleph.http :as http]
@@ -10,6 +9,8 @@
             [clojure.java.jdbc :as j]
             [stash.router :as router]
             [stash.utils :as u :refer [->resp]]
+            [stash.models :as m]
+            [stash.cli :as cli]
             [stash.database :as db])
   (:gen-class))
 
@@ -17,14 +18,6 @@
 ;; Setup stdout logging
 (t/refer-timbre)
 (t/set-level! :debug)
-
-
-;; initialize connection pool
-(db/conn)
-
-
-(def APP_VERSION
-  (-> "project.clj" slurp read-string (nth 2)))
 
 
 ;; Make sure compojure passes through all
@@ -85,7 +78,7 @@
 (defn- init-server
   "Initialize server with middleware"
   [opts]
-  (let [app (-> (router/load-routes APP_VERSION)
+  (let [app (-> (router/load-routes cli/APP_VERSION)
                 wrap-query-params
                 wrap-deferred-request)]
     (http/start-server app opts)))
@@ -148,60 +141,16 @@
         (format "Created user (%s) with auth token %s" user-id token-str)))))
 
 
-(def cli
-  [["-p" "--port PORT" "Port to listen on"
-    :default 3003
-    :parse-fn #(Integer/parseInt %)
-    :validate [#(< 0 % 65536) "Must be 0..=65536"]]
-   ["-n" "--name NAME" "Name to use when creating new user"
-    :validate [#(not (empty? %)) "Name is required"]]
-   ["-h" "--help"]])
-
-
-(defn usage [opts]
-  (->> [(format "Stash %s" APP_VERSION)
-        ""
-        "Usage: stash [options] command"
-        ""
-        "Options:"
-        opts
-        ""
-        "Commands:"
-        "  serve     Start server listening on PORT"
-        "  add-user  Create a new user with NAME"]
-       (string/join \newline)))
-
-
-(defn has-required [command opts]
-  (cond
-    (and
-      (= command "serve")
-      (some? (:port opts)))   true
-    (and
-      (= command "add-user")
-      (some? (:name opts)))   true
-    :else                     false))
-
-
-(defn parse-args [args]
-  (let [{:keys [options arguments errors summary]} (parse-opts args cli)]
-    (cond
-      (:help options)     {:msg (usage summary) :ok? true}
-      errors              {:msg (str "Error:\n" (string/join \newline errors))}
-      (and (= 1 (count arguments))
-           (#{"serve" "add-user"} (first arguments))
-           (has-required (first arguments) options))
-                          {:command (first arguments) :opts options}
-      :else               {:msg (usage summary)})))
-
-
 (defn -main
   [& args]
-  (let [{:keys [command opts msg ok?]} (parse-args args)]
+  (let [{:keys [command opts msg ok?]} (cli/parse-args args)]
     (if msg
       (do
         (println msg)
         (System/exit (if ok? 0 1)))
       (case command
-         "serve" (start (:port opts))
-         "add-user" (add-user (:name opts))))))
+         "list-users" (m/list-users (db/conn))
+         "add-user" (add-user (:name opts))
+         "serve" (do
+                   (t/infof "Current item count: %s" (m/count-items (db/conn)))
+                   (start (:port opts)))))))

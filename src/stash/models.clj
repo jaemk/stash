@@ -18,17 +18,17 @@
    created])
 
 (defn get-auth-by-token [conn auth-token]
-  (t/info "fetching auth token")
+  (t/infof "loading auth token %s" auth-token)
   (j/query conn ["select * from auth_tokens where token = ?" auth-token]
            {:row-fn map->Auth
             :result-set-fn #(first-or-err :models-get/Auth %)}))
+
 
 (defn list-users [conn]
   (let [display (fn [row] (println (:name row) (-> row :token u/format-uuid)))]
     (j/query conn [(str "select u.name, auth.token from app_users u "
                         "  join auth_tokens auth on u.id = auth.app_user")]
              {:row-fn display})))
-
 
 
 (defrecord Item
@@ -48,11 +48,16 @@
              {:row-fn map->Item
               :result-set-fn #(first-or-err :models-get/Item %)}))
 
+(defn count-items [conn]
+  (j/query conn ["select count(*) from items"]
+           {:row-fn :count
+            :result-set-fn #(first-or-err :models-count/Item %)}))
+
 (defn update-item-size [conn item-id size]
   (j/update! conn :items {:size size} ["id = ?" item-id]))
 
 (defn get-item-by-tokens [conn stash-token supplied-token request-user-token]
-  (t/info "fetching item")
+  (t/infof "loading item %s" stash-token)
   (j/query conn
            [(str
               "select items.* from items"
