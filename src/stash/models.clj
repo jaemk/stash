@@ -1,6 +1,8 @@
 (ns stash.models
   (:require [taoensso.timbre :as t]
             [clojure.java.jdbc :as j]
+            [clojure.java.io :as io]
+            [stash.config :as config]
             [stash.utils :as u]))
 
 
@@ -34,7 +36,6 @@
 (defrecord Item
   [id
    size
-   path
    stash_token
    supplied_token
    content_hash
@@ -43,7 +44,7 @@
    expires_at])
 
 (defn create-item [conn data]
-  (u/assert-has-all data [:path :stash_token :supplied_token :creator])
+  (u/assert-has-all data [:stash_token :supplied_token :creator])
   (j/insert! conn :items data
              {:row-fn map->Item
               :result-set-fn #(first-or-err :models-get/Item %)}))
@@ -57,7 +58,7 @@
   (j/update! conn :items {:size size} ["id = ?" item-id]))
 
 (defn get-item-by-tokens [conn stash-token supplied-token request-user-token]
-  (t/infof "loading item %s" stash-token)
+  (t/infof "loading item %s" (u/format-uuid stash-token))
   (j/query conn
            [(str
               "select items.* from items"
@@ -76,6 +77,25 @@
   (j/delete! conn :items ["items.id = ?" id]
              {:row-fn #(= 1 %)
               :result-set-fn first}))
+
+(defn token->path [^String token]
+  (let [upload-dir-name (config/v :upload-dir :default "uploads")
+        upload-path (-> (io/file upload-dir-name)
+                        .toPath
+                        .toAbsolutePath)]
+    (if (.exists (.toFile upload-path))
+      (-> (.resolve upload-path token) .toString)
+      (throw (Exception. (str "upload dir does not exist: " upload-path))))))
+
+(defn item->file [item]
+  (let [item-id (:id item)
+        file-path (-> item :stash_token u/format-uuid token->path)
+        file (io/file file-path)]
+    (if-not (.exists file)
+      (u/ex-not-found! :e-msg (format "backing file (%s) does not exist for item %s"
+                                      file-path
+                                      item-id))
+      file)))
 
 
 (defn access-kind->s [k]

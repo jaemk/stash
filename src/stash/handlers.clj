@@ -43,7 +43,7 @@
 (defn create [req]
   (let [token (u/uuid)
         token-str (u/format-uuid token)
-        upload-path (u/new-upload-path token-str)
+        upload-path (m/token->path token-str)
         upload-file (io/file upload-path)
 
         supplied-token (-> req :params :supplied-token)
@@ -62,8 +62,7 @@
         ex/pool
         (j/with-db-transaction [conn (db/conn)]
           (let [auth (m/get-auth-by-token conn user-auth-token)
-                item (m/create-item conn {:path upload-path
-                                          :stash_token token
+                item (m/create-item conn {:stash_token token
                                           :supplied_token supplied-token
                                           :creator (:app_user auth)})]
             {:auth auth
@@ -116,10 +115,10 @@
                                    :kind :retrieve})
             item)))
       (fn [item]
-        (u/assert-item-file-exists item)
-        (->resp
-          :headers {"content-type" "application/octet-stream"}
-          :body (io/file (:path item)))))))
+        (let [file (m/item->file item)]
+          (->resp
+            :headers {"content-type" "application/octet-stream"}
+            :body file))))))
 
 
 (defn delete [req]
@@ -137,7 +136,7 @@
                                          :kind :delete})
                 _ (if-not item-deleted
                     (u/ex-error! "Failed deleting database item"))
-                ^File file (u/assert-item-file-exists item)
+                ^File file (m/item->file item)
                 file-deleted (.delete file)
                 _ (if-not file-deleted
                     (u/ex-error! "Failed deleting item backing file"))]

@@ -4,7 +4,6 @@
            [java.nio.file Path]
            [org.apache.commons.codec.binary Hex])
   (:require [taoensso.timbre :as t]
-            [clojure.java.io :as io]
             [cheshire.core :refer [parse-string generate-string]
                            :rename {parse-string s->map
                                     generate-string  map->s}]))
@@ -109,28 +108,6 @@
 
 
 ;; ---- general
-(defn assert-item-file-exists [item]
-  (let [item-id (:id item)
-        file-path (:path item)
-        file (io/file file-path)]
-    (if-not (.exists file)
-      (ex-not-found! :e-msg (format "backing file (%s) does not exist for item %s"
-                                    file-path
-                                    item-id))
-      file)))
-
-
-(defn get-config
-  "Get a config value from system properties or the environment"
-  [prop & {:keys [default]
-           :or {default nil}}]
-  (if-let [v (System/getProperty prop)]
-    v
-    (if-let [v (System/getenv prop)]
-      v
-      default)))
-
-
 (defn uuid []
   (UUID/randomUUID))
 
@@ -153,15 +130,4 @@
       (catch Exception e
         (t/error e)
         (throw (Exception. "Invalid uuid"))))))
-
-
-(defn new-upload-path [^String token]
-  (let [upload-dir-name (get-config "STASH_UPLOAD_DIR" :default "uploads")
-        upload-path (-> (io/file upload-dir-name)
-                        .toPath
-                        .toAbsolutePath)]
-    (if (.exists (.toFile upload-path))
-      (-> (.resolve upload-path token) .toString)
-      (throw (Exception. (str "upload dir does not exist: " upload-path))))))
-
 

@@ -1,17 +1,17 @@
 (ns stash.database
-  (:require [stash.utils :refer [get-config]])
+  (:require [stash.config :as config])
   (:import (com.mchange.v2.c3p0 ComboPooledDataSource)))
 
 
-(def config
+(def db-config
   {:classname "org.postgresql.Driver"
    :subprotocol "postgresql"
    :subname (format "//%s:%s/%s"
-                    (get-config "DATABASE_HOST")
-                    (get-config "DATABASE_PORT")
-                    (get-config "DATABASE_NAME"))
-   :user (get-config "DATABASE_USER")
-   :password (get-config "DATABASE_PASSWORD")})
+                    (config/v :db-host)
+                    (config/v :db-port)
+                    (config/v :db-name))
+   :user (config/v :db-user)
+   :password (config/v :db-password)})
 
 
 (defn make-pool
@@ -28,5 +28,5 @@
     {:datasource cpds}))
 
 
-(def pool (delay (make-pool config)))
+(def pool (delay (make-pool db-config)))
 (defn conn [] @pool)
