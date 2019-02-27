@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [v0.3.0] - 2019-02-26
+### Changed
+- remove paths stored on items
+- item upload paths are always dynamically built using `STASH_UPLOAD_DIR`
+
 ## [v0.2.0] - 2019-02-25
 ### Added
 - deletion end point
@@ -20,5 +25,6 @@
 ### Added
 - stash service
 
-[Unreleased]: https://github.com/jaemk/stash/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/jaemk/stash/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/jaemk/stash/compare/v0.2.0...v0.3.0
 [v0.2.0]: https://github.com/jaemk/stash/compare/v0.1.0...v0.2.0
