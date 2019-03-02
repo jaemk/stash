@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [v0.3.1] - 2019-03-02
+### Changed
+- more info logged on startup
+
 ## [v0.3.0] - 2019-02-26
 ### Changed
 - remove paths stored on items
@@ -25,6 +29,7 @@
 ### Added
 - stash service
 
-[Unreleased]: https://github.com/jaemk/stash/compare/v0.3.0...HEAD
-[Unreleased]: https://github.com/jaemk/stash/compare/v0.2.0...v0.3.0
+[Unreleased]: https://github.com/jaemk/stash/compare/v0.3.1...HEAD
+[v0.3.1]: https://github.com/jaemk/stash/compare/v0.3.0...v0.3.1
+[v0.3.0]: https://github.com/jaemk/stash/compare/v0.2.0...v0.3.0
 [v0.2.0]: https://github.com/jaemk/stash/compare/v0.1.0...v0.2.0

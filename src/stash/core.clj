@@ -11,6 +11,8 @@
             [stash.utils :as u :refer [->resp]]
             [stash.models :as m]
             [stash.cli :as cli]
+            [stash.config :as config]
+            [stash.execution :as exec]
             [stash.database :as db])
   (:gen-class))
 
@@ -87,9 +89,9 @@
 (defn- start-server
   "Start a server on a given port"
   [port]
-  (t/info "starting server on port:" port)
+  (t/info "Starting server on port:" port)
   (let [s (init-server {:port port :raw-stream? true})]
-    (t/info "listening on port:" port)
+    (t/info "Listening on port:" port)
     s))
 
 
@@ -153,4 +155,6 @@
          "add-user" (add-user (:name opts))
          "serve" (do
                    (t/infof "Current item count: %s" (m/count-items (db/conn)))
+                   (t/infof "Using upload directory: %s" (config/v :upload-dir))
+                   (t/infof "Using thread pool size: %s" exec/num-threads)
                    (start (:port opts)))))))
