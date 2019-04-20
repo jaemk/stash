@@ -79,7 +79,7 @@
                 (m/update-item-size conn (:id item) @size)
                 (m/create-access conn {:item_id (:id item)
                                        :user_id (:user_id auth)
-                                       :kind :create}))
+                                       :kind :access-kind/create}))
               (t/infof "finished item %s upload of %s bytes" (:id item) @size)
               (->json {:ok :ok
                        :size @size
@@ -112,7 +112,7 @@
           (let [item (m/get-item-by-tokens conn stash-token supplied-token request-user-token)]
             (m/create-access conn {:item_id (:id item)
                                    :user_id (:creator_id item)
-                                   :kind :retrieve})
+                                   :kind :access-kind/retrieve})
             item)))
       (fn [item]
         (let [file (m/item->file item)]
@@ -133,7 +133,7 @@
                 item-deleted (m/delete-item-by-id conn (:id item))
                 _ (m/create-access conn {:item_id (:id item)
                                          :user_id (:creator_id item)
-                                         :kind :delete})
+                                         :kind :access-kind/delete})
                 _ (if-not item-deleted
                     (u/ex-error! "Failed deleting database item"))
                 ^File file (m/item->file item)
