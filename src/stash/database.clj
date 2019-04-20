@@ -1,32 +1,18 @@
 (ns stash.database
-  (:require [stash.config :as config])
-  (:import (com.mchange.v2.c3p0 ComboPooledDataSource)))
+  (:require [stash.config :as config]
+            [hikari-cp.core :refer [make-datasource]]
+            [stash.execution :as ex]))
 
 
 (def db-config
-  {:classname "org.postgresql.Driver"
-   :subprotocol "postgresql"
-   :subname (format "//%s:%s/%s"
-                    (config/v :db-host)
-                    (config/v :db-port)
-                    (config/v :db-name))
-   :user (config/v :db-user)
-   :password (config/v :db-password)})
+  {:adapter           "postgresql"
+   :username          (config/v :db-user)
+   :password          (config/v :db-pass)
+   :database-name     (config/v :db-name)
+   :server-name       (config/v :db-host)
+   :port-number       (config/v :db-port)
+   :maximum-pool-size (max 10 ex/num-threads)})
 
+(defonce datasource (delay (make-datasource db-config)))
 
-(defn make-pool
-  [spec]
-  (let [cpds (doto (ComboPooledDataSource.)
-               (.setDriverClass (:classname spec))
-               (.setJdbcUrl (str "jdbc:" (:subprotocol spec) ":" (:subname spec)))
-               (.setUser (:user spec))
-               (.setPassword (:password spec))
-               ;; expire excess connections after 30 minutes of inactivity:
-               (.setMaxIdleTimeExcessConnections (* 30 60))
-               ;; expire connections after 3 hours of inactivity:
-               (.setMaxIdleTime (* 3 60 60)))]
-    {:datasource cpds}))
-
-
-(def pool (delay (make-pool db-config)))
-(defn conn [] @pool)
+(defn conn [] {:datasource @datasource})

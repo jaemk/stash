@@ -16,7 +16,7 @@
                  [ring/ring-core "1.6.3"]
                  [compojure "1.6.1"]
                  [org.clojure/java.jdbc "0.7.8"]
-                 [com.mchange/c3p0 "0.9.5.3"]
+                 [hikari-cp "2.7.1"]
                  [org.postgresql/postgresql "42.2.5"]
                  [commons-codec/commons-codec "1.11"]
                  [cheshire "5.8.0"]]
