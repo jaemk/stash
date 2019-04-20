@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/tools.cli "0.4.1"]
                  [org.clojure/tools.logging "0.4.1"]
+                 [nrepl "0.6.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [aleph "0.4.6"]
                  [manifold "0.1.8"]
@@ -21,7 +22,7 @@
   :main ^:skip-aot stash.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}
-             :dev {:plugins [[lein-binplus "0.6.4"]]}}
+             :dev {:plugins [[lein-binplus "0.6.5"]]}}
   :bin {:name "stash"
         :bin-path "bin"
         :jvm-opts ["-server" "-Dfile.encoding=utf-8" "$JVM_OPTS"]
