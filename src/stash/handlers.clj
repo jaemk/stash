@@ -62,9 +62,9 @@
         ex/pool
         (j/with-db-transaction [conn (db/conn)]
           (let [auth (m/get-auth-by-token conn user-auth-token)
-                item (m/create-item conn {:stash_token token
-                                          :supplied_token supplied-token
-                                          :creator (:app_user auth)})]
+                item (m/create-item conn {:token token
+                                          :name supplied-token
+                                          :creator_id (:user_id auth)})]
             {:auth auth
              :item item})))
       (fn [{auth :auth
@@ -77,13 +77,13 @@
               ex/pool
               (j/with-db-transaction [conn (db/conn)]
                 (m/update-item-size conn (:id item) @size)
-                (m/create-access conn {:item (:id item)
-                                       :app_user (:app_user auth)
+                (m/create-access conn {:item_id (:id item)
+                                       :user_id (:user_id auth)
                                        :kind :create}))
               (t/infof "finished item %s upload of %s bytes" (:id item) @size)
               (->json {:ok :ok
                        :size @size
-                       :stash_token (-> (:stash_token item)
+                       :stash_token (-> (:token item)
                                         u/format-uuid)}))))))))
 
 
@@ -110,8 +110,8 @@
         ex/pool
         (j/with-db-transaction [conn (db/conn)]
           (let [item (m/get-item-by-tokens conn stash-token supplied-token request-user-token)]
-            (m/create-access conn {:item (:id item)
-                                   :app_user (:creator item)
+            (m/create-access conn {:item_id (:id item)
+                                   :user_id (:creator_id item)
                                    :kind :retrieve})
             item)))
       (fn [item]
@@ -131,8 +131,8 @@
         (j/with-db-transaction [conn (db/conn)]
           (let [item (m/get-item-by-tokens conn stash-token supplied-token request-user-token)
                 item-deleted (m/delete-item-by-id conn (:id item))
-                _ (m/create-access conn {:item (:id item)
-                                         :app_user (:creator item)
+                _ (m/create-access conn {:item_id (:id item)
+                                         :user_id (:creator_id item)
                                          :kind :delete})
                 _ (if-not item-deleted
                     (u/ex-error! "Failed deleting database item"))

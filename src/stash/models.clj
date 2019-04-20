@@ -7,15 +7,16 @@
 
 
 
-(defn first-or-err [ty result-set]
-  (if-let [one (first result-set)]
-    one
-    (u/ex-does-not-exist! ty)))
+(defn first-or-err [ty]
+  (fn [result-set]
+    (if-let [one (first result-set)]
+      one
+      (u/ex-does-not-exist! ty))))
 
 
 (defrecord Auth
   [id
-   app_user
+   user_id
    token
    created])
 
@@ -23,36 +24,36 @@
   (t/infof "loading auth token %s" auth-token)
   (j/query conn ["select * from auth_tokens where token = ?" auth-token]
            {:row-fn map->Auth
-            :result-set-fn #(first-or-err :models-get/Auth %)}))
+            :result-set-fn (first-or-err :models-get/Auth)}))
 
 
 (defn list-users [conn]
   (let [display (fn [row] (println (:name row) (-> row :token u/format-uuid)))]
-    (j/query conn [(str "select u.name, auth.token from app_users u "
-                        "  join auth_tokens auth on u.id = auth.app_user")]
+    (j/query conn [(str "select u.name, auth.token from users u "
+                        "  join auth_tokens auth on u.id = auth.user_id")]
              {:row-fn display})))
 
 
 (defrecord Item
   [id
    size
-   stash_token
-   supplied_token
-   content_hash
-   creator
+   token
+   name
+   hash
+   creator_id
    created
    expires_at])
 
 (defn create-item [conn data]
-  (u/assert-has-all data [:stash_token :supplied_token :creator])
+  (u/assert-has-all data [:token :name :creator_id])
   (j/insert! conn :items data
              {:row-fn map->Item
-              :result-set-fn #(first-or-err :models-get/Item %)}))
+              :result-set-fn (first-or-err :models-get/Item)}))
 
 (defn count-items [conn]
   (j/query conn ["select count(*) from items"]
            {:row-fn :count
-            :result-set-fn #(first-or-err :models-count/Item %)}))
+            :result-set-fn (first-or-err :models-count/Item)}))
 
 (defn update-item-size [conn item-id size]
   (j/update! conn :items {:size size} ["id = ?" item-id]))
@@ -62,15 +63,15 @@
   (j/query conn
            [(str
               "select items.* from items"
-              " inner join auth_tokens auth on auth.app_user = items.creator"
-              " where items.stash_token = ?"
-              "   and items.supplied_token = ?"
+              " inner join auth_tokens auth on auth.user_id = items.creator_id"
+              " where items.token = ?"
+              "   and items.name = ?"
               "   and auth.token = ?")
             stash-token
             supplied-token
             request-user-token]
            {:row-fn map->Item
-            :result-set-fn #(first-or-err :models-get/Item %)}))
+            :result-set-fn (first-or-err :models-get/Item)}))
 
 (defn delete-item-by-id [conn id]
   (t/infof "deleting item %s" id)
@@ -89,7 +90,7 @@
 
 (defn item->file [item]
   (let [item-id (:id item)
-        file-path (-> item :stash_token u/format-uuid token->path)
+        file-path (-> item :token u/format-uuid token->path)
         file (io/file file-path)]
     (if-not (.exists file)
       (u/ex-not-found! :e-msg (format "backing file (%s) does not exist for item %s"
@@ -124,19 +125,19 @@
 (defrecord Access
   [id
    item
-   app_user
+   user_id
    kind
    created])
 
 (defn create-access [conn data]
-  (u/assert-has-all data [:item :app_user :kind])
-  (let [{item :item
-         app_user :app_user
+  (u/assert-has-all data [:item_id :user_id :kind])
+  (let [{item :item_id
+         user_id :user_id
          kind :kind}        data
         kind-str (access-kind->s kind)]
-    (j/query conn [(str "insert into access (item, app_user, kind) values (?, ?, ?::access_kind)"
+    (j/query conn [(str "insert into access (item_id, user_id, kind) values (?, ?, ?::access_kind)"
                         "  returning *")
-                   item app_user kind-str]
+                   item user_id kind-str]
                 {:row-fn (convert-row-with-enum :kind s->access-kind map->Access)
-                 :result-set-fn #(first-or-err :models-get/Access %)
-                 })))
+                 :result-set-fn (first-or-err :models-get/Access)})))
+

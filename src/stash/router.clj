@@ -4,6 +4,7 @@
             [compojure.route :as route]
             [stash.utils :as u]
             [stash.handlers :as h]))
+; 72d06b3ca7b74edc9540a3b321a1e54e
 
 (defn load-routes [app-version]
   (routes

@@ -159,11 +159,11 @@
 
 (defn add-user [name-]
   (j/with-db-transaction [conn (db/conn)]
-    (let [user (j/insert! conn :app_users {:name name-} {:result-set-fn first})
+    (let [user (j/insert! conn :users {:name name-} {:result-set-fn first})
           user-id (:id user)
           _ (prn user-id)
           uuid (u/uuid)
-          auth-token (j/insert! conn :auth_tokens {:app_user user-id
+          auth-token (j/insert! conn :auth_tokens {:user_id user-id
                                                    :token uuid})
           token-str (u/format-uuid uuid)]
       (println
@@ -180,8 +180,8 @@
       (case command
          "list-users" (m/list-users (db/conn))
          "add-user" (add-user (:name opts))
-         "serve" (do
-                   (t/infof "Current item count: %s" (m/count-items (db/conn)))
-                   (t/infof "Using upload directory: %s" (config/v :upload-dir))
-                   (t/infof "Using thread pool size: %s" exec/num-threads)
-                   (start (:port opts)))))))
+         (do
+           (t/infof "Current item count: %s" (m/count-items (db/conn)))
+           (t/infof "Using upload directory: %s" (config/v :upload-dir))
+           (t/infof "Using thread pool size: %s" exec/num-threads)
+           (start (:port opts) (:repl-port opts) (:repl-public opts)))))))

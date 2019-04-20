@@ -12,6 +12,13 @@
     :default 3003
     :parse-fn #(Integer/parseInt %)
     :validate [#(< 0 % 65536) "Must be 0..=65536"]]
+   ["-r" "--repl-port PORT" "Port to start a network repl on"
+    :default nil
+    :parse-fn #(Integer/parseInt %)
+    :validate [#(< 0 % 65536) "Must be 0..=65536"]]
+   [nil "--repl-public FLAG" "Whether to start a public network repl"
+    :default "false"
+    :parse-fn #(Boolean/parseBoolean %)]
    ["-n" "--name NAME" "Name to use when creating new user"
     :validate [#(not (empty? %)) "Name is required"]]
    ["-h" "--help"]])
@@ -49,8 +56,4 @@
     (cond
       (:help options)     {:msg (usage summary) :ok? true}
       errors              {:msg (str "Error:\n" (string/join \newline errors))}
-      (and (= 1 (count arguments))
-           (#{"serve" "add-user" "list-users"} (first arguments))
-           (has-required (first arguments) options))
-                          {:command (first arguments) :opts options}
-      :else               {:msg (usage summary)})))
+      :else {:command (first arguments) :opts options})))

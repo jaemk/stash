@@ -15,8 +15,8 @@
      :db-port (env "DATABASE_PORT")
      :db-name (env "DATABASE_NAME")
      :db-user (env "DATABASE_USER")
-     :db-password (env "DATABASE_PASSWORD")
-     }))
+     :db-password (env "DATABASE_PASSWORD")}))
+
 
 
 (defn v
