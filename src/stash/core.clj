@@ -1,5 +1,6 @@
 (ns stash.core
   (:require [taoensso.timbre :as t]
+            [nrepl.server]
             [clojure.string :as string]
             [manifold.deferred :as d]
             [aleph.http :as http]
@@ -75,6 +76,7 @@
 
 ;; reloadable server
 (defonce server (atom nil))
+(defonce nrepl-server (atom nil))
 
 
 (defn- init-server
@@ -95,28 +97,53 @@
     s))
 
 
+(defn- start-repl
+  [port & {:keys [public]}]
+  (let [host (if (or public false) "0.0.0.0" "127.0.0.1")]
+    (t/infof "Starting nrepl server on %s:%s" host port)
+    (nrepl.server/start-server :bind host :port port)))
+
+
+(defn- stop-repl
+  [svr]
+  (t/info "Stopping nrepl server")
+  (nrepl.server/stop-server svr))
+
+
 (defn stop
   "Stop any running server"
   []
-  (swap!
-    server
-    (fn [svr]
-      (do
-        (when (not (nil? svr))
-          (do
-            (.close svr)
-            (t/info "server closed!")))
-        svr))))
+  (do
+    (swap!
+      server
+      (fn [svr]
+        (do
+          (when (not (nil? svr))
+            (do
+              (.close svr)
+              (t/info "server closed!")))
+          svr)))
+    (swap!
+      nrepl-server
+      (fn [svr]
+        (do
+          (when (not (nil? svr))
+            (do
+              (stop-repl svr)
+              (t/info "nrepl-server closed!"))))))))
 
 
 (defn start
   "Start server, closing any existing server if needed"
-  ([] (start 3003))
-  ([port]
-   (if (nil? port)
-     (start 3003)
-     (do
-       (reset! server (start-server port))))))
+  ([] (start 3003 3999))
+  ([port] (start port 3999))
+  ([port nrepl-port] (start port nrepl-port false))
+  ([port nrepl-port nrepl-public]
+   (do
+     (reset! nrepl-server (start-repl nrepl-port :public nrepl-public))
+     (reset! server (start-server port)))))
+
+
 
 (defn restart
   []
