@@ -1,13 +1,13 @@
 (ns stash.cli
   (:require [clojure.string :as string]
-            [clojure.tools.cli :refer [parse-opts]]))
+            [clojure.tools.cli :as cli-tools]))
 
 
 (def APP_VERSION
   (-> "project.clj" slurp read-string (nth 2)))
 
 
-(def cli
+(def cli-opts
   [["-p" "--port PORT" "Port to listen on"
     :default 3003
     :parse-fn #(Integer/parseInt %)
@@ -19,40 +19,21 @@
    [nil "--repl-public FLAG" "Whether to start a public network repl"
     :default "false"
     :parse-fn #(Boolean/parseBoolean %)]
-   ["-n" "--name NAME" "Name to use when creating new user"
-    :validate [#(not (empty? %)) "Name is required"]]
    ["-h" "--help"]])
 
 
 (defn usage [opts]
   (->> [(format "Stash %s" APP_VERSION)
         ""
-        "Usage: stash [options] command"
+        "Usage: stash [options]"
         ""
         "Options:"
-        opts
-        ""
-        "Commands:"
-        "  serve       Start server listening on PORT"
-        "  list-users  list all users and their tokens"
-        "  add-user    Create a new user with NAME"]
+        opts]
        (string/join \newline)))
 
 
-(defn has-required [command opts]
-  (cond
-    (= command "list-users")  true
-    (and
-      (= command "serve")
-      (some? (:port opts)))   true
-    (and
-      (= command "add-user")
-      (some? (:name opts)))   true
-    :else                     false))
-
-
 (defn parse-args [args]
-  (let [{:keys [options arguments errors summary]} (parse-opts args cli)]
+  (let [{:keys [options arguments errors summary]} (cli-tools/parse-opts args cli-opts)]
     (cond
       (:help options)     {:msg (usage summary) :ok? true}
       errors              {:msg (str "Error:\n" (string/join \newline errors))}

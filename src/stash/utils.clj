@@ -1,12 +1,13 @@
 (ns stash.utils
   (:import [java.util UUID]
            [java.nio ByteBuffer]
-           [java.nio.file Path]
            [org.apache.commons.codec.binary Hex])
   (:require [taoensso.timbre :as t]
             [cheshire.core :refer [parse-string generate-string]
-                           :rename {parse-string s->map
-                                    generate-string  map->s}]))
+             :rename {parse-string    s->map
+                      generate-string map->s}]
+            [stash.config :as config]
+            [clojure.java.io :as io]))
 
 
 ;; ---- response builders
@@ -71,7 +72,7 @@
               :resp (->resp :status 404 :body resp-msg)})))
 
 (defn ex-does-not-exist! [record-type]
-  (let [msg (format "Record %s does not exist" record-type)]
+  (let [msg (format "%s does not exist" record-type)]
     (throw
       (ex-info
         msg
@@ -130,4 +131,25 @@
       (catch Exception e
         (t/error e)
         (throw (Exception. "Invalid uuid"))))))
+
+
+(defn token->path [^String token]
+  (let [upload-dir-name (config/v :upload-dir :default "uploads")
+        upload-path (-> (io/file upload-dir-name)
+                        .toPath
+                        .toAbsolutePath)]
+    (if (.exists (.toFile upload-path))
+      (-> (.resolve upload-path token) .toString)
+      (throw (Exception. (str "upload dir does not exist: " upload-path))))))
+
+
+(defn item->file [item]
+  (let [item-id (:id item)
+        file-path (-> item :token format-uuid token->path)
+        file (io/file file-path)]
+    (if-not (.exists file)
+      (ex-not-found! :e-msg (format "backing file (%s) does not exist for item %s"
+                                    file-path
+                                    item-id))
+      file)))
 

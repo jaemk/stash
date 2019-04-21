@@ -1,7 +1,6 @@
 (ns stash.core
   (:require [taoensso.timbre :as t]
             [nrepl.server]
-            [clojure.string :as string]
             [manifold.deferred :as d]
             [aleph.http :as http]
             [ring.middleware.params :as params]
@@ -10,17 +9,10 @@
             [clojure.java.jdbc :as j]
             [stash.router :as router]
             [stash.utils :as u :refer [->resp]]
-            [stash.models :as m]
             [stash.cli :as cli]
             [stash.config :as config]
-            [stash.execution :as exec]
-            [stash.database :as db])
+            [stash.database.core :as db])
   (:gen-class))
-
-
-;; Setup stdout logging
-(t/refer-timbre)
-(t/set-level! :debug)
 
 
 ;; Make sure compojure passes through all
@@ -74,7 +66,7 @@
       (handler request))))
 
 
-;; reloadable server
+;; reloadable servers
 (defonce server (atom nil))
 (defonce nrepl-server (atom nil))
 
@@ -135,9 +127,9 @@
 
 (defn start
   "Start server, closing any existing server if needed"
-  ([] (start 3003 3999))
-  ([port] (start port 3999))
-  ([port nrepl-port] (start port nrepl-port false))
+  ([] (start (config/v :app-port) (config/v :repl-port)))
+  ([port] (start port (config/v :repl-port)))
+  ([port nrepl-port] (start port nrepl-port (config/v :repl-public)))
   ([port nrepl-port nrepl-public]
    (do
      (reset! nrepl-server (start-repl nrepl-port :public nrepl-public))
@@ -153,8 +145,8 @@
 
 (defn reload
   "Reload a specific namespace"
-  [-ns]
-  (use -ns :reload))
+  [ns']
+  (use ns' :reload))
 
 
 (defn add-user [name-]
@@ -163,8 +155,8 @@
           user-id (:id user)
           _ (prn user-id)
           uuid (u/uuid)
-          auth-token (j/insert! conn :auth_tokens {:user_id user-id
-                                                   :token uuid})
+          _ (j/insert! conn :auth_tokens {:user_id user-id
+                                          :token uuid})
           token-str (u/format-uuid uuid)]
       (println
         (format "Created user (%s) with auth token %s" user-id token-str)))))
@@ -178,10 +170,12 @@
         (println msg)
         (System/exit (if ok? 0 1)))
       (case command
-         "list-users" (m/list-users (db/conn))
+         "list-users" (db/list-users (db/conn))
          "add-user" (add-user (:name opts))
          (do
-           (t/infof "Current item count: %s" (m/count-items (db/conn)))
+           (t/infof "Current item count: %s" (db/count-items (db/conn)))
            (t/infof "Using upload directory: %s" (config/v :upload-dir))
-           (t/infof "Using thread pool size: %s" exec/num-threads)
-           (start (:port opts) (:repl-port opts) (:repl-public opts)))))))
+           (t/infof "Using thread pool size: %s" (config/v :num-threads))
+           (start (:port opts)
+                  (:repl-port opts)
+                  (:repl-public opts)))))))

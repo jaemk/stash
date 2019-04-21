@@ -4,12 +4,10 @@
   (:require [taoensso.timbre :as t]
             [manifold.deferred :as d]
             [manifold.stream :as s]
-            [aleph.http :as http]
             [byte-streams :as bs]
             [stash.execution :as ex]
-            [stash.database :as db]
+            [stash.database.core :as db]
             [stash.utils :as u :refer [->resp ->text ->json]]
-            [stash.models :as m]
             [clojure.java.jdbc :as j]
             [clojure.java.io :as io]
             [cheshire.core :refer [parse-string generate-string]
@@ -17,7 +15,7 @@
                                     generate-string  map->s}]))
 
 
-(defn index [req]
+(defn index [_]
   (->text "hello"))
 
 
@@ -43,7 +41,7 @@
 (defn create [req]
   (let [token (u/uuid)
         token-str (u/format-uuid token)
-        upload-path (m/token->path token-str)
+        upload-path (u/token->path token-str)
         upload-file (io/file upload-path)
 
         supplied-token (-> req :params :supplied-token)
@@ -61,10 +59,10 @@
       (d/future-with
         ex/pool
         (j/with-db-transaction [conn (db/conn)]
-          (let [auth (m/get-auth-by-token conn user-auth-token)
-                item (m/create-item conn {:token token
-                                          :name supplied-token
-                                          :creator_id (:user_id auth)})]
+          (let [auth (db/get-auth-by-token conn user-auth-token)
+                item (db/create-item conn {:token token
+                                           :name supplied-token
+                                           :creator_id (:user_id auth)})]
             {:auth auth
              :item item})))
       (fn [{auth :auth
@@ -76,10 +74,10 @@
             (d/future-with
               ex/pool
               (j/with-db-transaction [conn (db/conn)]
-                (m/update-item-size conn (:id item) @size)
-                (m/create-access conn {:item_id (:id item)
-                                       :user_id (:user_id auth)
-                                       :kind :access-kind/create}))
+                (db/update-item-size conn (:id item) @size)
+                (db/create-access conn {:item_id (:id item)
+                                        :user_id (:user_id auth)
+                                        :kind :access-kind/create}))
               (t/infof "finished item %s upload of %s bytes" (:id item) @size)
               (->json {:ok :ok
                        :size @size
@@ -109,13 +107,13 @@
       (d/future-with
         ex/pool
         (j/with-db-transaction [conn (db/conn)]
-          (let [item (m/get-item-by-tokens conn stash-token supplied-token request-user-token)]
-            (m/create-access conn {:item_id (:id item)
-                                   :user_id (:creator_id item)
-                                   :kind :access-kind/retrieve})
+          (let [item (db/get-item-by-tokens conn stash-token supplied-token request-user-token)]
+            (db/create-access conn {:item_id (:id item)
+                                    :user_id (:creator_id item)
+                                    :kind :access-kind/retrieve})
             item)))
       (fn [item]
-        (let [file (m/item->file item)]
+        (let [file (u/item->file item)]
           (->resp
             :headers {"content-type" "application/octet-stream"}
             :body file))))))
@@ -129,14 +127,14 @@
       (d/future-with
         ex/pool
         (j/with-db-transaction [conn (db/conn)]
-          (let [item (m/get-item-by-tokens conn stash-token supplied-token request-user-token)
-                item-deleted (m/delete-item-by-id conn (:id item))
-                _ (m/create-access conn {:item_id (:id item)
-                                         :user_id (:creator_id item)
-                                         :kind :access-kind/delete})
+          (let [item (db/get-item-by-tokens conn stash-token supplied-token request-user-token)
+                item-deleted (db/delete-item-by-id conn (:id item))
+                _ (db/create-access conn {:item_id (:id item)
+                                          :user_id (:creator_id item)
+                                          :kind :access-kind/delete})
                 _ (if-not item-deleted
                     (u/ex-error! "Failed deleting database item"))
-                ^File file (m/item->file item)
+                ^File file (u/item->file item)
                 file-deleted (.delete file)
                 _ (if-not file-deleted
                     (u/ex-error! "Failed deleting item backing file"))]

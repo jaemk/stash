@@ -1,8 +1,5 @@
 (ns stash.execution
-  (:require [manifold.executor :refer [fixed-thread-executor]]))
+  (:require [manifold.executor :refer [fixed-thread-executor]]
+            [stash.config :as config]))
 
-
-(def num-cpus (.availableProcessors (Runtime/getRuntime)))
-(def num-threads (* 8 num-cpus))
-
-(def pool (fixed-thread-executor num-threads))
+(def pool (fixed-thread-executor (config/v :num-threads)))

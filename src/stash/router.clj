@@ -1,18 +1,16 @@
 (ns stash.router
-  (:require [taoensso.timbre :as t]
-            [compojure.core :refer :all]
+  (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [stash.utils :as u]
             [stash.handlers :as h]))
-; 72d06b3ca7b74edc9540a3b321a1e54e
 
 (defn load-routes [app-version]
   (routes
     (ANY "/" [] h/index)
     (ANY "/status" [] (u/->json {:status :ok :version app-version}))
-    (POST "/create/:supplied-token" r h/create)
-    (POST "/retrieve/:supplied-token" r h/retrieve)
-    (POST "/delete/:supplied-token" r h/delete)
+    (POST "/create/:supplied-token" _ h/create)
+    (POST "/retrieve/:supplied-token" _ h/retrieve)
+    (POST "/delete/:supplied-token" _ h/delete)
     (route/not-found (u/->resp
                        :body "nothing to see here"
                        :status 404))))
