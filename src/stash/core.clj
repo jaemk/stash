@@ -9,10 +9,10 @@
             [clojure.java.jdbc :as j]
             [stash.router :as router]
             [stash.utils :as u :refer [->resp]]
-            [stash.cli :as cli]
             [stash.config :as config]
             [stash.database.core :as db])
-  (:gen-class))
+  (:gen-class)
+  (:import (java.net InetSocketAddress)))
 
 
 ;; Make sure compojure passes through all
@@ -66,81 +66,78 @@
       (handler request))))
 
 
-;; reloadable servers
-(defonce server (atom nil))
-(defonce nrepl-server (atom nil))
-
-
 (defn- init-server
   "Initialize server with middleware"
   [opts]
-  (let [app (-> (router/load-routes cli/APP_VERSION)
+  (let [app (-> (router/load-routes)
                 wrap-query-params
                 wrap-deferred-request)]
     (http/start-server app opts)))
 
 
-(defn- start-server
-  "Start a server on a given port"
-  [port]
-  (t/info "Starting server on port:" port)
-  (let [s (init-server {:port port :raw-stream? true})]
-    (t/info "Listening on port:" port)
-    s))
+;; reloadable servers
+(defonce ^:dynamic *http-server* (atom nil))
+(defonce ^:dynamic *repl-server* (atom nil))
 
 
-(defn- start-repl
-  [port & {:keys [public]}]
-  (let [host (if (or public false) "0.0.0.0" "127.0.0.1")]
-    (t/infof "Starting nrepl server on %s:%s" host port)
-    (nrepl.server/start-server :bind host :port port)))
+(defn start-server!
+  "Start the server!"
+  [& {:keys [port
+             public]
+      :or {port (config/v :app-port)
+           public (config/v :app-public)}}]
+  (let [host (if public "0.0.0.0" "127.0.0.1")
+        addr (InetSocketAddress. host port)]
+    (do
+      (t/info "starting http server on " addr)
+      (reset! *http-server*
+        (let [s (init-server {:socket-address addr
+                              :raw-stream? true})]
+          (t/info "listening on " addr)
+          s)))))
 
 
-(defn- stop-repl
-  [svr]
-  (t/info "Stopping nrepl server")
-  (nrepl.server/stop-server svr))
-
-
-(defn stop
-  "Stop any running server"
+(defn stop-server!
+  "Stop the server!"
   []
-  (do
-    (swap!
-      server
-      (fn [svr]
-        (do
-          (when (not (nil? svr))
-            (do
-              (.close svr)
-              (t/info "server closed!")))
-          svr)))
-    (swap!
-      nrepl-server
-      (fn [svr]
-        (do
-          (when (not (nil? svr))
-            (do
-              (stop-repl svr)
-              (t/info "nrepl-server closed!"))))))))
+  (swap!
+    *http-server*
+    (fn [svr]
+      (do
+        (when (not (nil? svr))
+          (do
+            (.close svr)
+            (t/info "server closed!")))
+        svr))))
 
 
-(defn start
-  "Start server, closing any existing server if needed"
-  ([] (start (config/v :app-port) (config/v :repl-port)))
-  ([port] (start port (config/v :repl-port)))
-  ([port nrepl-port] (start port nrepl-port (config/v :repl-public)))
-  ([port nrepl-port nrepl-public]
-   (do
-     (reset! nrepl-server (start-repl nrepl-port :public nrepl-public))
-     (reset! server (start-server port)))))
-
-
-
-(defn restart
+(defn restart-server!
   []
-  (stop)
-  (start))
+  (stop-server!)
+  (start-server!))
+
+
+(defn start-repl!
+  [& {:keys [port
+             public]
+      :or {port (config/v :repl-port)
+           public (config/v :repl-public)}}]
+  (let [host (if public "0.0.0.0" "127.0.0.1")]
+    (t/infof "starting nrepl server on %s:%s" host port)
+    (reset! *repl-server*
+      (nrepl.server/start-server :bind host :port port))))
+
+
+(defn stop-repl!
+  []
+  (swap!
+    *repl-server*
+    (fn [svr]
+      (do
+        (when (not (nil? svr))
+          (do
+            (nrepl.server/stop-server svr)
+            (t/info "nrepl-server closed!")))))))
 
 
 (defn reload
@@ -163,19 +160,10 @@
 
 
 (defn -main
-  [& args]
-  (let [{:keys [command opts msg ok?]} (cli/parse-args args)]
-    (if msg
-      (do
-        (println msg)
-        (System/exit (if ok? 0 1)))
-      (case command
-         "list-users" (db/list-users (db/conn))
-         "add-user" (add-user (:name opts))
-         (do
-           (t/infof "Current item count: %s" (db/count-items (db/conn)))
-           (t/infof "Using upload directory: %s" (config/v :upload-dir))
-           (t/infof "Using thread pool size: %s" (config/v :num-threads))
-           (start (:port opts)
-                  (:repl-port opts)
-                  (:repl-public opts)))))))
+  [& _args]
+  (do
+    (t/infof "Current item count: %s" (db/count-items (db/conn)))
+    (t/infof "Using upload directory: %s" (config/v :upload-dir))
+    (t/infof "Using thread pool size: %s" (config/v :num-threads))
+    (start-repl!)
+    (start-server!)))
