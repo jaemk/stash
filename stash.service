@@ -9,7 +9,7 @@ EnvironmentFile=/<abs-path-to>/stash/.env.local
 Environment=JVM_OPTS=""
 User=james
 WorkingDirectory=/<abs-path-to>/stash
-ExecStart=/<abs-path-to>/stash/bin/stash serve --port PORT
+ExecStart=/<abs-path-to>/stash/bin/stash
 Restart=on-failure
 
 [Install]
