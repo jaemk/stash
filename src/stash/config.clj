@@ -32,6 +32,7 @@
      :app-public  (env "PUBLIC" :default false :parse parse-bool)
      :repl-port   (env "REPL_PORT" :default 3999 :parse parse-int)
      :repl-public (env "REPL_PUBLIC" :default false :parse parse-bool)
+     :instrument  (env "INSTRUMENT" :default true :parse parse-bool)
 
      :app-version (app-version)
      :num-cpus    num-cpus

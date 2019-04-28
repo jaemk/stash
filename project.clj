@@ -17,6 +17,7 @@
                  [org.clojure/java.jdbc "0.7.8"]
                  [hikari-cp "2.7.1"]
                  [org.postgresql/postgresql "42.2.5"]
+                 [honeysql "0.9.4"]
                  [commons-codec/commons-codec "1.11"]
                  [cheshire "5.8.0"]]
   :main ^:skip-aot stash.core

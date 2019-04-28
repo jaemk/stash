@@ -10,7 +10,9 @@
             [stash.router :as router]
             [stash.utils :as u :refer [->resp]]
             [stash.config :as config]
-            [stash.database.core :as db])
+            [stash.database.core :as db]
+            [clojure.spec.alpha :as s]
+            [clojure.spec.test.alpha :as stest])
   (:gen-class)
   (:import (java.net InetSocketAddress)))
 
@@ -146,17 +148,11 @@
   (use ns' :reload))
 
 
-(defn add-user [name-]
-  (j/with-db-transaction [conn (db/conn)]
-    (let [user (j/insert! conn :users {:name name-} {:result-set-fn first})
-          user-id (:id user)
-          _ (prn user-id)
-          uuid (u/uuid)
-          _ (j/insert! conn :auth_tokens {:user_id user-id
-                                          :token uuid})
-          token-str (u/format-uuid uuid)]
-      (println
-        (format "Created user (%s) with auth token %s" user-id token-str)))))
+;; turn on spec stuff
+(when (config/v :instrument)
+  (do
+    (s/check-asserts true)
+    (stest/instrument)))
 
 
 (defn -main
