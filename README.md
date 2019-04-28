@@ -38,7 +38,15 @@ $ java -jar stash.jar add-user --name "my app that needs access to stash"
 Created user <id> with auth token <access_token>
 
 # start the server
-$ java -jar stash.jar serve --port 4000
+$ export PORT=3003      # default
+$ export REPL_PORT=3999 # default
+$ bin/stash
+
+# connect to run commands
+$ lein repl :connect 3999
+user=> (initenv)  ; loads a bunch of namespaes
+user=> (cmd/add-user "you") 
+user=> (cmd/list-users)
 
 # upload things
 $ curl localhost:4000/create/<my-identifier> \
