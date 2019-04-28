@@ -17,7 +17,7 @@
 (def db-config
   {:adapter           "postgresql"
    :username          (config/v :db-user)
-   :password          (config/v :db-pass)
+   :password          (config/v :db-password)
    :database-name     (config/v :db-name)
    :server-name       (config/v :db-host)
    :port-number       (config/v :db-port)
