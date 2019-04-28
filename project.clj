@@ -23,7 +23,11 @@
   :main ^:skip-aot stash.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}
-             :dev {:plugins [[lein-binplus "0.6.5"]]}}
+             :dev {:plugins [[lein-binplus "0.6.5"]
+                             [lein-midje "3.2.1"]]
+                   :dependencies [[midje "1.9.8"]]
+                   :source-paths ["dev"]
+                   :main user}}
   :bin {:name "stash"
         :bin-path "bin"
         :jvm-opts ["-server" "-Dfile.encoding=utf-8" "$JVM_OPTS"]
