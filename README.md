@@ -14,20 +14,18 @@ $ lein bin
 
 ## Database
 
-[`Migrant`](https://github.com/jaemk/migrant) is used for migration management.
+[`migratus`](https://github.com/yogthos/migratus) is used for migration management.
 
 ```
 # create db/user
-sudo -u postgres createdb stash
-sudo -u postgres createuser stash
-sudo -u postgres psql -c "alter user stash with password 'start'"
+$ sudo -u postgres createdb stash
+$ sudo -u postgres createuser stash
+$ sudo -u postgres psql -c "alter user stash with password 'stash'"
+$ sudo -u postgres psql -c "alter role stash createdb"
 
-# setup config file and migration table
-migrant init -t postgres --default-from-env --no-confirm
-migrant setup
-
-# apply all available migrations
-migrant apply -a
+# apply migrations from repl
+$ lein repl
+user=> (cmd/migrate)
 ```
 
 ## Usage
@@ -65,6 +63,17 @@ $ curl localhost:4000/delete/<my-identifier> \
 >   -H 'x-stash-access-token: <access_token>' \
 >   -d '{"stash_token": "<stash_token>"}'
 {"ok": "ok"}
+```
+
+## Testing
+
+```
+# run test
+$ lein midje
+
+# or interactively in the repl
+$ lein repl
+user=> (autotest)
 ```
 
 ## License
