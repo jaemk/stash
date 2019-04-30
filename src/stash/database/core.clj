@@ -27,6 +27,13 @@
 
 (defn conn [] {:datasource @datasource})
 
+(defn migration-config
+  ([] (migration-config (conn)))
+  ([connection] {:store :database
+                 :migration-dir "migrations"
+                 :init-script "init.sql"
+                 :db connection}))
+
 
 ; ----- postgres/jdbc/honeysql extensions ------
 (defn kw->pg-enum [kw]

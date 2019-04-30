@@ -1,4 +1,5 @@
 create type access_kind as enum ('create', 'retrieve', 'delete');
+--;;
 
 create table access (
     id bigint primary key default id_gen(),

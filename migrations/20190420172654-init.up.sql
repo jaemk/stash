@@ -1,5 +1,5 @@
 create sequence id_seq;
-
+--;;
 create or replace function id_gen(out result bigint) as $$
 declare
     id_epoch bigint := 1553394377671;

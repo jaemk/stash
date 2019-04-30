@@ -8,6 +8,7 @@
                  [nrepl "0.6.0"]
                  [com.taoensso/timbre "4.10.0"]
                  [org.slf4j/slf4j-simple "1.7.25"]
+                 [migratus "1.2.3"]
                  [aleph "0.4.6"]
                  [manifold "0.1.8"]
                  [byte-streams "0.2.4"]
