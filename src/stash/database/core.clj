@@ -151,7 +151,7 @@
 
 (defn select-users [conn & {:keys [where] :or {where nil}}]
   (j/query conn
-           (-> (h/select :u.name :auth.token)
+           (-> (h/select :u.* :auth.token)
                (h/from [:users :u])
                (h/where where)
                (h/join [:auth_tokens :auth] [:= :u.id :auth.user_id])
