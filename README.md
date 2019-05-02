@@ -24,7 +24,7 @@ $ sudo -u postgres psql -c "alter user stash with password 'stash'"
 $ sudo -u postgres psql -c "alter role stash createdb"
 
 # apply migrations from repl
-$ lein repl
+$ lein with-profile +dev repl
 user=> (cmd/migrate)
 ```
 
@@ -40,7 +40,7 @@ $ export PORT=3003      # default
 $ export REPL_PORT=3999 # default
 $ bin/stash
 
-# connect to run commands
+# connect to running application
 $ lein repl :connect 3999
 user=> (initenv)  ; loads a bunch of namespaes
 user=> (cmd/add-user "you") 
@@ -72,7 +72,7 @@ $ curl localhost:4000/delete/<my-identifier> \
 $ lein midje
 
 # or interactively in the repl
-$ lein repl
+$ lein with-profile +dev repl
 user=> (autotest)
 ```
 
