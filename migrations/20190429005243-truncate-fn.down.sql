@@ -1,1 +1,1 @@
-drop function if exists truncate_tables(text);
+drop function if exists stash.truncate_tables();

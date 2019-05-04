@@ -1,9 +1,9 @@
-drop index user_items;
+drop index stash.user_items;
 --;;
-drop index item_tokens;
+drop index stash.item_tokens;
 --;;
-drop table items;
+drop table stash.items;
 --;;
-drop table auth_tokens;
+drop table stash.auth_tokens;
 --;;
-drop table users;
+drop table stash.users;

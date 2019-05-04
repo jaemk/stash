@@ -1,5 +1,5 @@
 
-create or replace function truncate_tables(owner text)
+create or replace function stash.truncate_tables()
 returns text as
 $func$
 declare
@@ -18,7 +18,7 @@ begin
         string_agg(format('%I.%I', schemaname, tablename), ', ')
     from pg_tables
     where tableowner = 'stash'
-    and schemaname = 'public'
+    and schemaname = 'stash'
     and tablename not like '%migrations%';
 
     stmt := 'truncate table ' || table_names || ' cascade';

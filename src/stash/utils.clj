@@ -7,7 +7,8 @@
              :rename {parse-string    s->map
                       generate-string map->s}]
             [stash.config :as config]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [clojure.string :as string]))
 
 
 ;; ---- response builders
@@ -153,3 +154,19 @@
                                     item-id))
       file)))
 
+
+(defn kebab->under [s]
+  (string/replace s "-" "_"))
+
+
+(defn under->kebab [s]
+  (string/replace s "_" "-"))
+
+
+(defn pad-vec
+  ([coll size] (pad-vec coll size nil))
+  ([coll size pad]
+   (as-> coll v
+         (concat v (repeat pad))
+         (take size v)
+         (vec v))))

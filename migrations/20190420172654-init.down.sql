@@ -1,3 +1,3 @@
-drop function if exists id_gen(bigint);
+drop function if exists stash.id_gen(bigint);
 --;;
-drop sequence if exists id_seq;
+drop sequence if exists stash.id_seq;
