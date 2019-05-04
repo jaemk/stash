@@ -11,10 +11,15 @@
 
 (defn truncate-db [test-db]
   (let [conn (:conn @test-db)]
-    (t/info "truncating test db tables")
-    (->> (jdbc/query conn
-                      ["select truncate_tables()"])
-         (t/infof "truncated tables %s"))))
+    (try
+      (t/info "truncating test db tables")
+      (->> (jdbc/query conn
+                        ["select truncate_tables()"])
+           (first)
+           (:truncate_tables)
+           (t/infof "truncated tables %s"))
+      (catch Exception e
+        (t/warn "ignoring error from truncating:" e)))))
 
 (defn teardown-db [test-db]
   (swap! test-db
@@ -30,7 +35,7 @@
                                 [(str "drop database " db-name)]
                                 {:transaction? false})
                  (catch Exception e
-                   (t/warn "ignoring error" e)))))
+                   (t/warn "ignoring error from teardown:" e)))))
            nil)))
 
 (defn setup-db [test-db]
