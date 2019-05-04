@@ -19,30 +19,31 @@ $ lein bin
 ```
 # create db
 $ sudo -u postgres psql -c "create database stash"
+
 # create user
 $ sudo -u postgres psql -c "create user stash"
+
 # set password
 $ sudo -u postgres psql -c "alter user stash with password 'stash'"
+
 # allow user to create schemas in database
 $ sudo -u postgres psql -c "grant create on database stash to stash"
+
 # allow user to create new databases
 $ sudo -u postgres psql -c "alter role stash createdb"
 
 # apply migrations from repl
 $ lein with-profile +dev repl
-user=> (cmd/migrate)
+user=> (cmd/migrate!)
 ```
 
 ## Usage
 
 ```
-# create application/user access tokens
-$ java -jar stash.jar add-user --name "my app that needs access to stash"
-Created user <id> with auth token <access_token>
-
 # start the server
-$ export PORT=3003      # default
-$ export REPL_PORT=3999 # default
+$ export PORT=3003        # default
+$ export REPL_PORT=3999   # default
+$ export INSTRUMENT=false # disable spec assertions
 $ bin/stash
 
 # connect to running application
