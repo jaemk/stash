@@ -17,3 +17,5 @@ repl.*
 test_large.txt
 test_out.txt
 bin
+*.DS_Store
+.idea/
