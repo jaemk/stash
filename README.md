@@ -17,10 +17,15 @@ $ lein bin
 [`migratus`](https://github.com/yogthos/migratus) is used for migration management.
 
 ```
-# create db/user
-$ sudo -u postgres createdb stash
-$ sudo -u postgres createuser stash
+# create db
+$ sudo -u postgres psql -c "create database stash"
+# create user
+$ sudo -u postgres psql -c "create user stash"
+# set password
 $ sudo -u postgres psql -c "alter user stash with password 'stash'"
+# allow user to create schemas in database
+$ sudo -u postgres psql -c "grant create on database stash to stash"
+# allow user to create new databases
 $ sudo -u postgres psql -c "alter role stash createdb"
 
 # apply migrations from repl
