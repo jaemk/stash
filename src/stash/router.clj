@@ -9,9 +9,9 @@
   (routes
     (ANY "/" [] h/index)
     (ANY "/status" [] (u/->json {:status :ok :version (config/v :app-version)}))
-    (POST "/create/:supplied-token" _ h/create)
-    (POST "/retrieve/:supplied-token" _ h/retrieve)
-    (POST "/delete/:supplied-token" _ h/delete)
+    (POST "/create/:name" _ h/create)
+    (POST "/retrieve/:name" _ h/retrieve)
+    (POST "/delete/:name" _ h/delete)
     (route/not-found (u/->resp
                        :body "nothing to see here"
                        :status 404))))

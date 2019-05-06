@@ -44,7 +44,7 @@
         upload-path (u/token->path token-str)
         upload-file (io/file upload-path)
 
-        supplied-token (-> req :params :supplied-token)
+        name (-> req :params :name)
         user-auth-token (-> (get-request-user-token req) u/parse-uuid)
 
         size (atom 0)
@@ -61,7 +61,7 @@
         (j/with-db-transaction [conn (db/conn)]
           (let [auth (db/get-auth-by-token conn user-auth-token)
                 item (db/create-item conn {:token token
-                                           :name supplied-token
+                                           :name name
                                            :creator_id (:user_id auth)})]
             {:auth auth
              :item item})))
@@ -100,14 +100,14 @@
 
 
 (defn retrieve [req]
-  (let [supplied-token (-> req :params :supplied-token)
+  (let [name (-> req :params :name)
         request-user-token (-> (get-request-user-token req) u/parse-uuid)
         stash-token (-> (get-stash-token req) u/parse-uuid)]
     (d/chain
       (d/future-with
         ex/pool
         (j/with-db-transaction [conn (db/conn)]
-          (let [item (db/get-item-by-tokens conn stash-token supplied-token request-user-token)]
+          (let [item (db/get-item-by-tokens conn stash-token name request-user-token)]
             (db/create-access conn {:item_id (:id item)
                                     :user_id (:creator_id item)
                                     :kind :access-kind/retrieve})
@@ -120,14 +120,14 @@
 
 
 (defn delete [req]
-  (let [supplied-token (-> req :params :supplied-token)
+  (let [name (-> req :params :name)
         request-user-token (-> (get-request-user-token req) u/parse-uuid)
         stash-token (-> (get-stash-token req) u/parse-uuid)]
     (d/chain
       (d/future-with
         ex/pool
         (j/with-db-transaction [conn (db/conn)]
-          (let [item (db/get-item-by-tokens conn stash-token supplied-token request-user-token)
+          (let [item (db/get-item-by-tokens conn stash-token name request-user-token)
                 item-deleted (db/delete-item-by-id conn (:id item))
                 _ (db/create-access conn {:item_id (:id item)
                                           :user_id (:creator_id item)
