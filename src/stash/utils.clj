@@ -94,21 +94,6 @@
       :resp (->resp :status 500 :body resp-msg)})))
 
 
-;; ---- assertions
-(defn assert-has-all [coll keys]
-  (let [presence (map #(some? (% coll)) keys)
-        missing-keys (->> (map vector keys presence)
-                          (filter (fn [[_ flag]] (false? flag)))
-                          (map first)
-                          (vector))]
-    (when-not (every? true? presence)
-      (throw (ex-info "Some expected keys are missing"
-                      {:type :missing-keys
-                       :cause :models-insert
-                       :msg (format "missing expected keys: %s" missing-keys)
-                       :resp (->resp :status 500 :body "internal error")})))))
-
-
 ;; ---- general
 (defn uuid []
   (UUID/randomUUID))
