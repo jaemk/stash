@@ -22,6 +22,8 @@
            (:name user)
            (-> auth :token u/format-uuid))))))
 
+(defn item-count []
+  (println (db/count-items (db/conn))))
 
 (defn pending-migrations []
   (migratus/pending-list (db/migration-config)))
