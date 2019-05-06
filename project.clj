@@ -21,6 +21,7 @@
                  [org.postgresql/postgresql "42.2.5"]
                  [honeysql "0.9.4"]
                  [nilenso/honeysql-postgres "0.2.5"]
+                 [orchestra "2019.02.06-1"]
                  [commons-codec/commons-codec "1.11"]
                  [cheshire "5.8.0"]]
   :main ^:skip-aot stash.core

@@ -12,7 +12,7 @@
             [stash.config :as config]
             [stash.database.core :as db]
             [clojure.spec.alpha :as s]
-            [clojure.spec.test.alpha :as stest])
+            [orchestra.spec.test :as st])
   (:gen-class)
   (:import (java.net InetSocketAddress)))
 
@@ -152,7 +152,7 @@
 (when (config/v :instrument)
   (do
     (s/check-asserts true)
-    (stest/instrument)))
+    (st/instrument)))
 
 
 (defn -main
