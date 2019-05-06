@@ -136,6 +136,14 @@
            {:result-set-fn pluck}))
 
 
+(defn update! [conn stmt]
+  (j/query conn
+           (-> stmt
+               (pg/returning :*)
+               sql/format)
+           {:result-set-fn #(pluck % :empty->nil true)}))
+
+
 (defn delete! [conn stmt]
   (j/query conn
            (-> stmt
@@ -144,12 +152,26 @@
            {:result-set-fn #(pluck % :empty->nil true)}))
 
 
+(defn query [conn stmt & {:keys [first row-fn]
+                          :or {first nil
+                               row-fn identity}}]
+  (let [rs-fn (if (nil? first)
+                nil
+                (first-or-err first))]
+    (j/query conn
+             (-> stmt
+                 sql/format)
+             {:row-fn row-fn
+              :result-set-fn rs-fn})))
+
+
+
 ; ----- database queries ------
-(defn create-user [conn name']
+(defn create-user [conn name]
   (j/with-db-connection [trans conn]
    (let [user (insert! trans
                        (-> (h/insert-into :stash.users)
-                           (h/values [{:name name'}])))
+                           (h/values [{:name name}])))
          user-id (:id user)
          uuid (u/uuid)
          auth (insert! trans
@@ -157,63 +179,86 @@
                            (h/values [{:user_id user-id
                                        :token uuid}])))]
      {:user user :auth auth})))
+(s/fdef create-user
+        :args (s/cat :conn ::types/conn
+                     :name ::types/name)
+        :ret (s/keys :req-un [::types/user ::types/auth]))
 
 
 (defn get-auth-by-token [conn auth-token]
   (t/infof "loading auth token %s" auth-token)
-  (j/query conn
-           (-> (h/select :*)
-               (h/from :stash.auth_tokens)
-               (h/where [:= :token auth-token])
-               sql/format)
-           {:result-set-fn (first-or-err :db-get/auth)}))
+  (query conn
+         (-> (h/select :*)
+             (h/from :stash.auth_tokens)
+             (h/where [:= :token auth-token]))
+         :first :db-get/auth))
+(s/fdef get-auth-by-token
+        :args (s/cat :conn ::types/conn
+                     :auth-token ::types/token)
+        :ret ::types/auth)
 
 
 (defn select-users [conn & {:keys [where] :or {where nil}}]
-  (j/query conn
-           (-> (h/select :u.* :auth.token)
-               (h/from [:stash.users :u])
-               (h/where where)
-               (h/join [:stash.auth_tokens :auth] [:= :u.id :auth.user_id])
-               sql/format)))
+  (query conn
+         (-> (h/select :u.* :auth.token)
+             (h/from [:stash.users :u])
+             (h/where where)
+             (h/join [:stash.auth_tokens :auth] [:= :u.id :auth.user_id]))))
+(s/fdef select-users
+        :args (s/cat :conn ::types/conn
+                     :kwargs (s/keys* :opt-un [::where]))
+        :ret (s/coll-of ::types/user))
 
 
 (defn create-item [conn data]
-  (u/assert-has-all data [:token :name :creator_id])
   (insert! conn
            (-> (h/insert-into :items)
                (h/values [data]))))
+(s/fdef create-item
+        :args (s/cat :conn ::types/conn
+                     :data ::types/item-min))
 
 
 (defn count-items [conn]
-  (j/query conn
-           (-> (h/select :%count.*)
-               (h/from :stash.items)
-               sql/format)
-           {:row-fn :count
-            :result-set-fn (first-or-err :db-count/item)}))
+  (query conn
+         (-> (h/select :%count.*)
+             (h/from :stash.items))
+         :first :db-count/item
+         :row-fn :count))
+(s/fdef count-items
+        :args (s/cat :conn ::types/conn)
+        :ret int?)
 
 
 (defn update-item-size [conn item-id size]
-  (j/execute! conn
-              (-> (h/update :stash.items)
-                  (h/sset {:size size})
-                  (h/where [:= :id item-id])
-                  sql/format)
-              {:return-keys true}))
+  (t/infof "updating item %s with size %s" item-id size)
+  (update! conn
+           (-> (h/update :stash.items)
+               (h/sset {:size size})
+               (h/where [:= :id item-id]))))
+(s/fdef update-item-size
+        :args (s/cat :conn ::types/conn
+                     :item-id ::types/id
+                     :size ::types/size)
+        :ret ::types/item)
 
 
-(defn get-item-by-tokens [conn stash-token supplied-token request-user-token]
+(defn get-item-by-tokens [conn stash-token name request-user-token]
   (t/infof "loading item %s" (u/format-uuid stash-token))
-  (j/query conn
-           (-> (h/select :items.*)
-               (h/from :stash.items)
-               (h/join [:stash.auth_tokens :auth] [:= :auth.user_id :items.creator_id])
-               (h/where [:= :items.token stash-token]
-                        [:= :items.name supplied-token]
-                        [:= :auth.token request-user-token])
-               sql/format)
-           {:result-set-fn (first-or-err :db-get/item)}))
+  (query conn
+         (-> (h/select :items.*)
+             (h/from :stash.items)
+             (h/join [:stash.auth_tokens :auth] [:= :auth.user_id :items.creator_id])
+             (h/where [:= :items.token stash-token]
+                      [:= :items.name name]
+                      [:= :auth.token request-user-token]))
+         :first :db-get/item))
+(s/fdef get-item-by-tokens
+        :args (s/cat :conn ::types/conn
+                     :stash-token ::types/token
+                     :name ::types/name
+                     :request-user-token ::types/token)
+        :ret ::types/item)
 
 
 (defn delete-item-by-id [conn id]
@@ -221,27 +266,30 @@
   (delete! conn
            (-> (h/delete-from :stash.items)
                (h/where [:= :items.id id]))))
+(s/fdef delete-item-by-id
+        :args (s/cat :conn ::types/conn
+                     :id ::types/id)
+        :ret ::types/item)
 
 
 (defn create-access [conn data]
-  ;(s/assert ::types/access-record data)
+  (t/infof "creating access %s, user %s, item %s"
+           (:kind data) (:user_id data) (:item_id data))
   (insert! conn
            (-> (h/insert-into :stash.access)
                (h/values [data]))))
-
 (s/fdef create-access
-        :args (s/cat :conn some? :data ::types/access-record)
-        :ret ::types/access-record-full)
+        :args (s/cat :conn ::types/conn
+                     :data ::types/access-record-min)
+        :ret ::types/access-record)
 
 
 (defn select-access [conn kind]
-  (j/query conn
-           (-> (h/select :*)
-               (h/from :stash.access)
-               (h/where [:= :kind kind])
-               sql/format)
-           {:return-keys true}))
-
+  (query conn
+         (-> (h/select :*)
+             (h/from :stash.access)
+             (h/where [:= :kind kind]))))
 (s/fdef select-access
-        :args (s/cat :conn some? :kind ::types/kind)
-        :ret (s/coll-of ::types/access-record-full))
+        :args (s/cat :conn ::types/conn
+                     :kind ::types/kind)
+        :ret (s/coll-of ::types/access-record))
