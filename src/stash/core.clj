@@ -174,17 +174,3 @@
              :num-threads (config/v :num-threads)})
     (start-repl!)
     (start-server!)))
-
-
-
-(defn logthings []
-  (t/info "just a word 2")
-  (t/info {:b 1
-           :f 2
-           :a 0
-           :x 3
-           :z 5
-           :y 4})
-  (t/info "words with" {:params [1 2 3 {:four 4}]})
-  (t/info)
-  (t/infof "word %s" 1))
