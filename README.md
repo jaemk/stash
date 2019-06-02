@@ -82,6 +82,14 @@ $ lein with-profile +dev repl
 user=> (autotest)
 ```
 
+## Docker
+
+```
+# build
+$ docker build -t stash:latest .
+# run
+$ docker run --rm -p 3003:3003 -p 3999:3999 --env-file .env.values stash:latest
+
 ## License
 
 Distributed under the Eclipse Public License either version 1.0 or (at
