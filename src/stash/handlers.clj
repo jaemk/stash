@@ -5,14 +5,13 @@
             [manifold.deferred :as d]
             [manifold.stream :as s]
             [byte-streams :as bs]
+            [clojure.java.jdbc :as j]
+            [clojure.java.io :as io]
+            [cheshire.core :as json]
             [stash.execution :as ex]
             [stash.database.core :as db]
             [stash.utils :as u :refer [->resp ->text ->json]]
-            [clojure.java.jdbc :as j]
-            [clojure.java.io :as io]
-            [cheshire.core :refer [parse-string generate-string]
-                           :rename {parse-string s->map
-                                    generate-string  map->s}]))
+            [stash.config :as config]))
 
 
 (defn index [_]
@@ -38,10 +37,32 @@
       (io/copy src file-stream))))
 
 
+(defn token->path [^String token]
+  (let [upload-dir-name (config/v :upload-dir :default "uploads")
+        upload-path (-> (io/file upload-dir-name)
+                        .toPath
+                        .toAbsolutePath)]
+    (if (.exists (.toFile upload-path))
+      (-> (.resolve upload-path token) .toString)
+      (throw (Exception. (str "upload dir does not exist: " upload-path))))))
+
+
+(defn item->file [item]
+  (let [item-id (:id item)
+        file-path (-> item :token u/format-uuid token->path)
+        file (io/file file-path)]
+    (if-not (.exists file)
+      (u/ex-not-found! :e-msg (format "backing file (%s) does not exist for item %s"
+                                      file-path
+                                      item-id))
+      file)))
+
+
+
 (defn create [req]
   (let [token (u/uuid)
         token-str (u/format-uuid token)
-        upload-path (u/token->path token-str)
+        upload-path (token->path token-str)
         upload-file (io/file upload-path)
 
         name (-> req :params :name)
@@ -67,7 +88,9 @@
              :item item})))
       (fn [{auth :auth
             item :item}]
-        (t/infof "uploading item %s to %s" (:id item) upload-path)
+        (t/info "uploading item"
+                {:item-id (:id item)
+                 :upload-path upload-path})
         (d/chain
           (stream-to-file body upload-file)
           (fn [_]
@@ -78,7 +101,9 @@
                 (db/create-access conn {:item_id (:id item)
                                         :user_id (:user_id auth)
                                         :kind :access-kind/create}))
-              (t/infof "finished item %s upload of %s bytes" (:id item) @size)
+              (t/info "finished item upload"
+                      {:item-id (:id item)
+                       :size-bytes @size})
               (->json {:ok :ok
                        :size @size
                        :stash_token (-> (:token item)
@@ -89,7 +114,7 @@
   (-> req
       :body
       (bs/to-string)
-      (s->map)
+      (json/decode)
       (get "stash_token")
       ((fn [token]
          (if (nil? token)
@@ -113,7 +138,7 @@
                                     :kind :access-kind/retrieve})
             item)))
       (fn [item]
-        (let [file (u/item->file item)]
+        (let [file (item->file item)]
           (->resp
             :headers {"content-type" "application/octet-stream"}
             :body file))))))
@@ -134,7 +159,7 @@
                                           :kind :access-kind/delete})
                 _ (if-not item-deleted
                     (u/ex-error! "Failed deleting database item"))
-                ^File file (u/item->file item)
+                ^File file (item->file item)
                 file-deleted (.delete file)
                 _ (if-not file-deleted
                     (u/ex-error! "Failed deleting item backing file"))]

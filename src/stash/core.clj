@@ -17,7 +17,7 @@
   (:import (java.net InetSocketAddress)))
 
 
-;; Make sure compojure passes through all
+ ;; Make sure compojure passes through all
 ;; deferred objects to play nice with aleph
 (extend-protocol Renderable
   manifold.deferred.IDeferred
@@ -45,18 +45,26 @@
               (if (nil? info)
                 (do
                   (reset! status 500)
-                  (t/error e)
+                  (t/error "UNKNOWN ERROR"
+                           {:type nil
+                            :exc-info e})
                   (->resp :status 500 :body "Something went wrong"))
                 (do
                   (reset! status (-> info :resp :status))
-                  (t/errorf "%s %s" (:type info) (:msg info))
+                  (t/error "ERROR"
+                           {:type (:type info)
+                            :ex-data info})
                   (:resp info))))))
         (d/finally
           (fn []
             (let [elap-ms (-> (System/nanoTime)
                               (- start)
                               (/ 1000000.))]
-              (t/info method uri @status (str elap-ms "ms")))))))))
+              (t/info "completed request"
+                      {:method method
+                       :uri uri
+                       :status @status
+                       :request-time-ms elap-ms}))))))))
 
 
 (defn- wrap-query-params
@@ -91,11 +99,11 @@
   (let [host (if public "0.0.0.0" "127.0.0.1")
         addr (InetSocketAddress. host port)]
     (do
-      (t/info "starting http server on " addr)
+      (t/info "starting http server" {:addr addr})
       (reset! *http-server*
         (let [s (init-server {:socket-address addr
                               :raw-stream? true})]
-          (t/info "listening on " addr)
+          (t/info "started http server" {:addr addr})
           s)))))
 
 
@@ -125,7 +133,9 @@
       :or {port (config/v :repl-port)
            public (config/v :repl-public)}}]
   (let [host (if public "0.0.0.0" "127.0.0.1")]
-    (t/infof "starting nrepl server on %s:%s" host port)
+    (t/info "starting nrepl server"
+            {:host host
+             :port port})
     (reset! *repl-server*
       (nrepl.server/start-server :bind host :port port))))
 
@@ -158,8 +168,23 @@
 (defn -main
   [& _args]
   (do
-    (t/infof "Current item count: %s" (db/count-items (db/conn)))
-    (t/infof "Using upload directory: %s" (config/v :upload-dir))
-    (t/infof "Using thread pool size: %s" (config/v :num-threads))
+    (t/info "checking config"
+            {:item-count (db/count-items (db/conn))
+             :upload-dir (config/v :upload-dir)
+             :num-threads (config/v :num-threads)})
     (start-repl!)
     (start-server!)))
+
+
+
+(defn logthings []
+  (t/info "just a word 2")
+  (t/info {:b 1
+           :f 2
+           :a 0
+           :x 3
+           :z 5
+           :y 4})
+  (t/info "words with" {:params [1 2 3 {:four 4}]})
+  (t/info)
+  (t/infof "word %s" 1))

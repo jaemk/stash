@@ -8,4 +8,3 @@
            '[stash.types :as types]
            '[stash.database.core :as db]
            '[stash.commands.core :as cmd]))
-

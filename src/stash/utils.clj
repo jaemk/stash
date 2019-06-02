@@ -1,14 +1,11 @@
 (ns stash.utils
+  (:require [taoensso.timbre :as t]
+            [cheshire.core :as json]
+            [clojure.java.io :as io]
+            [clojure.string :as string])
   (:import [java.util UUID]
            [java.nio ByteBuffer]
-           [org.apache.commons.codec.binary Hex])
-  (:require [taoensso.timbre :as t]
-            [cheshire.core :refer [parse-string generate-string]
-             :rename {parse-string    s->map
-                      generate-string map->s}]
-            [stash.config :as config]
-            [clojure.java.io :as io]
-            [clojure.string :as string]))
+           [org.apache.commons.codec.binary Hex]))
 
 
 ;; ---- response builders
@@ -40,7 +37,7 @@
     (merge
       {:status 200
        :headers {"content-type" "application/json"}
-       :body (map->s mapping)}
+       :body (json/encode mapping)}
       kwargs)))
 
 
@@ -115,29 +112,16 @@
           ((fn [^ByteBuffer buf]
              (UUID. (.getLong buf) (.getLong buf)))))
       (catch Exception e
-        (t/error e)
+        (t/error {:exc-info e})
         (throw (Exception. "Invalid uuid"))))))
 
 
-(defn token->path [^String token]
-  (let [upload-dir-name (config/v :upload-dir :default "uploads")
-        upload-path (-> (io/file upload-dir-name)
-                        .toPath
-                        .toAbsolutePath)]
-    (if (.exists (.toFile upload-path))
-      (-> (.resolve upload-path token) .toString)
-      (throw (Exception. (str "upload dir does not exist: " upload-path))))))
+(defn parse-int [s]
+  (Integer/parseInt s))
 
 
-(defn item->file [item]
-  (let [item-id (:id item)
-        file-path (-> item :token format-uuid token->path)
-        file (io/file file-path)]
-    (if-not (.exists file)
-      (ex-not-found! :e-msg (format "backing file (%s) does not exist for item %s"
-                                    file-path
-                                    item-id))
-      file)))
+(defn parse-bool [s]
+  (Boolean/parseBoolean s))
 
 
 (defn kebab->under [s]

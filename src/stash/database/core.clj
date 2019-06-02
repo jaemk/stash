@@ -186,7 +186,7 @@
 
 
 (defn get-auth-by-token [conn auth-token]
-  (t/infof "loading auth token %s" auth-token)
+  (t/info "loading auth token" {:auth-token auth-token})
   (query conn
          (-> (h/select :*)
              (h/from :stash.auth_tokens)
@@ -231,7 +231,9 @@
 
 
 (defn update-item-size [conn item-id size]
-  (t/infof "updating item %s with size %s" item-id size)
+  (t/info "updating item with size"
+           {:item-id item-id
+            :size size})
   (update! conn
            (-> (h/update :stash.items)
                (h/sset {:size size})
@@ -244,7 +246,8 @@
 
 
 (defn get-item-by-tokens [conn stash-token name request-user-token]
-  (t/infof "loading item %s" (u/format-uuid stash-token))
+  (t/info "loading item"
+          {:stash-token (u/format-uuid stash-token)})
   (query conn
          (-> (h/select :items.*)
              (h/from :stash.items)
@@ -262,7 +265,8 @@
 
 
 (defn delete-item-by-id [conn id]
-  (t/infof "deleting item %s" id)
+  (t/info "deleting item"
+          {:item-id id})
   (delete! conn
            (-> (h/delete-from :stash.items)
                (h/where [:= :items.id id]))))
@@ -273,8 +277,10 @@
 
 
 (defn create-access [conn data]
-  (t/infof "creating access %s, user %s, item %s"
-           (:kind data) (:user_id data) (:item_id data))
+  (t/info "creating access"
+          {:kind (:kind data)
+           :user-id (:user_id data)
+           :item-id (:item_id data)})
   (insert! conn
            (-> (h/insert-into :stash.access)
                (h/values [data]))))

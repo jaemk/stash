@@ -17,9 +17,9 @@
                         ["select truncate_tables()"])
            (first)
            (:truncate_tables)
-           (t/infof "truncated tables %s"))
+           (t/info "truncated tables"))
       (catch Exception e
-        (t/warn "ignoring error from truncating:" e)))))
+        (t/warn "ignoring error from truncating:" {:exc-info e})))))
 
 (defn teardown-db [test-db]
   (swap! test-db
@@ -35,7 +35,7 @@
                                 [(str "drop database " db-name)]
                                 {:transaction? false})
                  (catch Exception e
-                   (t/warn "ignoring error from teardown:" e)))))
+                   (t/warn "ignoring error from teardown:" {:exc-info e})))))
            nil)))
 
 (defn setup-db [test-db]
@@ -43,7 +43,7 @@
   (let [db-name (->> (u/uuid)
                      u/format-uuid
                      (str "stash_test_"))]
-    (t/info "setting up test db" db-name)
+    (t/info "setting up test db" {:db-name db-name})
     (jdbc/execute! (db/conn)
                    [(str "create database " db-name)]
                    {:transaction? false})

@@ -8,7 +8,8 @@
 (defn load-routes []
   (routes
     (ANY "/" [] h/index)
-    (ANY "/status" [] (u/->json {:status :ok :version (config/v :app-version)}))
+    (ANY "/status" [] (u/->json {:status :ok
+                                 :version (config/v :app-version)}))
     (POST "/create/:name" _ h/create)
     (POST "/retrieve/:name" _ h/retrieve)
     (POST "/delete/:name" _ h/delete)

@@ -6,3 +6,7 @@
             [stash.types :as types]
             [stash.commands.core :as cmd])
   (:use [midje.repl]))
+
+
+(defn -main []
+  (app/-main))
