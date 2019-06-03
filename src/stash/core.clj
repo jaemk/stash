@@ -17,7 +17,7 @@
   (:import (java.net InetSocketAddress)))
 
 
- ;; Make sure compojure passes through all
+;; Make sure compojure passes through all
 ;; deferred objects to play nice with aleph
 (extend-protocol Renderable
   manifold.deferred.IDeferred

@@ -4,7 +4,9 @@
   (:require [taoensso.timbre :as t]
             [manifold.deferred :as d]
             [manifold.stream :as s]
+            [manifold.time :as dtime]
             [byte-streams :as bs]
+            [aleph.http :as http]
             [clojure.java.jdbc :as j]
             [clojure.java.io :as io]
             [cheshire.core :as json]
@@ -164,3 +166,35 @@
                 _ (if-not file-deleted
                     (u/ex-error! "Failed deleting item backing file"))]
             (->json {:ok :ok})))))))
+
+
+;; -- testing
+(defn make-requests [n uri]
+  (-> (fn [i]
+        (d/chain
+          (http/get uri {:pool ex/cp
+                         :body (json/encode {:count i})})
+          :body
+          bs/to-string
+          #(json/decode % true)
+          :data
+          #(json/decode % true)
+          :count))
+      (map (range n))))
+
+(defn flob [req]
+  (let [start (:aleph/request-arrived req)
+        -count (-> req :params :count u/parse-int)]
+    (->
+      (d/chain
+        (apply d/zip (make-requests -count "https://httpbin.org/delay/2"))
+        (fn [resps] (->json {:elap (-> (System/nanoTime)
+                                       (- start)
+                                       (/ 1000000.))
+                             :resps (clojure.string/join "|" resps)})))
+      (d/catch Exception #(t/error "no luck.." :exc-info %)))))
+
+
+(defn delay-seconds [req]
+  (let [delay-ms (-> req :params :seconds u/parse-int (* 1000))]
+    (dtime/in delay-ms #(->json {:msg "yo"}))))

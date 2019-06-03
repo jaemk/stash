@@ -39,6 +39,14 @@
      :repl-public (env "REPL_PUBLIC" :default false :parse u/parse-bool)
      :instrument  (env "INSTRUMENT" :default true :parse u/parse-bool)
      :pretty-logs (env "PRETTY_LOGS" :default false :parse u/parse-bool)
+     :max-client-connections
+                  (env "MAX_CLIENT_CONNECTIONS" :default 2000 :parse u/parse-int)
+     :max-client-connections-per-host
+                  (env "MAX_CLIENT_CONNECTIONS_PER_HOST" :default 500 :parse u/parse-int)
+     :keep-alive-client-connections
+                  (env "KEEP_ALIVE_CLIENT_CONNECTIONS" :default true :parse u/parse-bool)
+     :keep-alive-client-timeout-ms
+                  (env "KEEP_ALIVE_CLIENT_TIMEOUT_MS" :default 5000 :parse u/parse-int)
 
      :app-version (app-version)
      :num-cpus    num-cpus
@@ -118,12 +126,18 @@
 (defn fmt-log [data]
   (if-not @*pretty-console-logs*
     (json/encode data)
-    (let [{:keys [_/timestamp _/level _/source-namespace _/exc-info event]} data]
-      (format "%-25s [%-7s] %-20s [%s] %s%s"
+    (let [{:keys [_/timestamp
+                  _/level
+                  _/source-namespace
+                  _/source-namespace-line
+                  _/exc-info
+                  event]} data]
+      (format "%-25s [%-7s] %-20s [%s:%d] %s%s"
               timestamp
               (name level)
               event
               source-namespace
+              source-namespace-line
               (fmt-log-data data)
               (if exc-info
                 (str " " exc-info)

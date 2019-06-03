@@ -10,6 +10,8 @@
     (ANY "/" [] h/index)
     (ANY "/status" [] (u/->json {:status :ok
                                  :version (config/v :app-version)}))
+    (ANY "/flob/:count" _ h/flob)
+    (ANY "/delay/:seconds" _ h/delay-seconds)
     (POST "/create/:name" _ h/create)
     (POST "/retrieve/:name" _ h/retrieve)
     (POST "/delete/:name" _ h/delete)
